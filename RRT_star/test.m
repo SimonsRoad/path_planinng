@@ -13,8 +13,8 @@ u0=6*rand(4,1);
 
 x0dot=dynamics(x0,u0);
 
-xq=x0+0.05*rand(12,1);
-uq=u0+0.05*rand(4,1);
+xq=x0+0.5*rand(12,1);
+uq=u0+0.5*rand(4,1);
 
 xqdot=dynamics(xq,uq);
 
@@ -54,33 +54,28 @@ xlist=[xlist x(1:6)];
 tlist=[tlist t];
 end
 
-figure()
-for i=1:6
-    subplot(6,1,i)
-    plot(tlist,xlist(i,:))
-    hold on
-    plot(tlist,)
-end
+% figure()
+% for i=1:6
+%     subplot(6,1,i)
+%     plot(tlist,xlist(i,:))
+%     hold on
+%     plot(tlist,)
+% end
 
 
 %% planning
-globa S
 
-N=200;
-ndim=6+6;
-ranges=[-10 20; -10 20; -10 20; 0 2*pi ;0 2*pi;0 2*pi;...
-    -10 20; -10 20; -10 20; 0 2*pi ;0 2*pi;0 2*pi];
-g=PGraph(12,'distance','LQR');
-prob=problem(ndim,ranges); 
+% N=200;
+% ndim=6+6;
+% ranges=[-10 20; -10 20; -10 20; 0 2*pi ;0 2*pi;0 2*pi;...
+%     -10 20; -10 20; -10 20; 0 2*pi ;0 2*pi;0 2*pi];
 
+% making map 
+load map1
+sim_map=map;
+g=PGraph(2);
+ndim=2; ranges=[0 10; 0 10];
 
-
-for i=1:N
-    
-
-
-
-
-end
-
+prob=problem(ndim,ranges,sim_map); 
+sample(prob)
 
