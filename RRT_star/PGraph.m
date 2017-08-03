@@ -27,7 +27,7 @@
 %   g.neighbours(v)        neighbours of vertex v
 %   g.component(v)         component id for vertex v
 %   g.connectivity()       number of edges for all vertices
-%
+%   g.near()               vertex in near 
 % Display::
 %
 %   g.plot()                   set goal vertex for path planning
@@ -120,7 +120,7 @@ classdef PGraph < matlab.mixin.Copyable
         measure         % distance measure: 'Euclidean', 'SE2'
         dweight         % distance weighting for SE2 measure
         ncvalid
-        S
+        gamma  
     end
     
     properties (Dependent)
@@ -175,7 +175,10 @@ classdef PGraph < matlab.mixin.Copyable
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%% GRAPH MAINTENANCE
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
+        function set_gamma(g,gamma)
+            g.gamma=gamma;
+        end
+                
         
         function v = add_node(g, coord, vfrom, varargin)
             %PGraph.add_node Add a node
@@ -214,7 +217,7 @@ classdef PGraph < matlab.mixin.Copyable
             g.ncvalid = false;  % mark connectivity as suspect
         end
         
-        function e = add_edge(g, v1, v2, d)
+        function add_edge(g, v1, v2, d)
             %PGraph.add_edge Add an edge
             %
             % E = G.add_edge(V1, V2) adds a directed edge from vertex id V1 to vertex id V2, and
@@ -814,7 +817,7 @@ classdef PGraph < matlab.mixin.Copyable
             opt.labels = false;
             opt.edges = true;
             opt.edgelabels = false;
-            opt.NodeSize = 8;
+            opt.NodeSize = 1;
             opt.NodeFaceColor = 'b';
             opt.NodeEdgeColor = 'b';
             opt.NodeLabelSize = 16;
@@ -987,6 +990,89 @@ classdef PGraph < matlab.mixin.Copyable
             [~,v] = min(d);
         end
         
+        function descend(g, vg)
+
+            % get neighbours and their distance
+            for nc = g.neighbours2(vg);
+                vn = nc(1);
+                d = nc(2);
+                newcost = g.goaldist(vg) + d;
+                if isinf(g.goaldist(vn))
+                    % no cost yet assigned, give it this one
+                    g.goaldist(vn) = newcost;
+                    %fprintf('1: cost %d <- %f\n', vn, newcost);
+                    descend(g, vn);
+                else
+                    % it already has a cost
+                    if g.goaldist(vn) <= newcost
+                        continue;
+                    else
+                        g.goaldist(vn) = newcost;
+                        %fprintf('2: cost %d <- %f\n', vn, newcost);
+                        descend(g, vn);
+                    end
+                end
+            end
+        end        
+        
+        function nc = neighbours2(g, v)
+            e = g.edges(v);
+            n = g.edgelist(:,e);
+            n = n(:)';
+            n(n==v) = [];   % remove references to self
+            c = g.cost(e);
+            nc = [n; c];
+        end
+        
+        function goal(g, vg)
+        %PGraph.goal Set goal node
+        %
+        % G.goal(VG) computes the cost of reaching every vertex in the graph connected 
+        % to the goal vertex VG.
+        %
+        % Notes::
+        % - Combined with G.path performs a breadth-first search for paths to the goal.
+        %
+        % See also PGraph.path, PGraph.Astar, Astar.
+
+            % cost is total distance from goal
+            g.goaldist = Inf*ones(1, numcols(g.vertexlist));
+
+            g.goaldist(vg) = 0;
+            g.descend(vg);
+        end
+
+
+        function p = path(g, v)
+        %PGraph.path Find path to goal node
+        %
+        % P = G.path(VS) is a vector of vertex ids that form a path from
+        % the starting vertex VS to the previously specified goal.  The path
+        % includes the start and goal vertex id.
+        %
+        % To compute path to goal vertex 5
+        %        g.goal(5);
+        % then the path, starting from vertex 1 is
+        %        p1 = g.path(1);
+        % and the path starting from vertex 2 is
+        %        p2 = g.path(2);
+        %
+        % Notes::
+        % - Pgraph.goal must have been invoked first.
+        % - Can be used repeatedly to find paths from different starting points
+        %   to the goal specified to Pgraph.goal().
+        %
+        % See also PGraph.goal, PGraph.Astar.
+            p = [v];
+
+            while g.goaldist(v) ~= 0
+                v = g.next(v);
+                p = [p v];
+            end
+        end
+
+        
+        
         function highlight_node(g, verts, varargin)
             %PGraph.highlight_node Highlight a node
             %
@@ -1003,7 +1089,7 @@ classdef PGraph < matlab.mixin.Copyable
             hold on
             
             % parse options
-            opt.NodeSize = 12;
+            opt.NodeSize = 4;
             opt.NodeFaceColor = 'y';
             opt.NodeEdgeColor = 'b';
             
@@ -1331,6 +1417,25 @@ classdef PGraph < matlab.mixin.Copyable
                 end
             end
         end
+        
+        function vn = next(g, v)
+
+            % V = G.next(VS) return the id of a node connected to node id VS
+            % that is closer to the goal.
+            n = g.neighbours(v);
+            [mn,k] = min( g.goaldist(n) );
+            vn = n(k);
+        end
+        
+        
+        
+        function [near_vs,rad]=near(g,v)
+            x=g.vertexlist(:,v);
+            rad=g.gamma*(log(g.n)/g.n)^(1/g.ndims);
+            d = g.distance_metric(x, g.vertexlist);
+            near_vs=find(d<rad);
+            near_vs=setdiff(near_vs,v);
+        end      
     end %  methods
     
 end % classdef
