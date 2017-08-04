@@ -85,7 +85,7 @@ while ~isreached
 %     plot(x_rand(1),x_rand(2),'r*')
     x_new=steer(x_nearest,x_rand);
     
-    if ~prob.obsfree(x_new,x_nearest)
+    if ~prob.isobs(x_new,x_nearest)
         v_new=g.add_node(x_new);
         g.add_edge(v_nearest,v_new)
         isreached=norm(x_new-goal)<reach_tol;
@@ -102,9 +102,8 @@ g.highlight_path(p)
 
 
 %% planning - RRT*
-
 g=PGraph(2);
-g.set_gamma(1);
+g.set_gamma(0.5);
 ndim=2; ranges=[0 10; 0 10];
 obs{1}=[2 3;2 8]; obs{2}=[6 8;4 6];
 prob=problem(ndim,ranges,obs); 
@@ -113,11 +112,14 @@ root=[0.1 0.1]';
 goal=[9 5.5]';
 g.add_node(root);
 
+prob.mapplot
+hold on
 
 isreached=0;
-reach_tol=1e-1;
-while ~isreached
+reach_tol=1e-2;
+while g.n<20000
     x_rand=sample(prob);
+%     plot(x_rand(1),x_rand(2),'r*')
     [v_nearest]=g.closest(x_rand);
     x_nearest=g.vertexlist(:,v_nearest);
     x_new=steer(x_nearest,x_rand);
@@ -126,7 +128,7 @@ while ~isreached
         v_new=g.add_node(x_new);
         V_near=g.near(v_new);
         % pick the node for minimum cost
-        x_min=x_nearest;
+        x_min=x_nearest;  v_min=v_nearest;
         [~,c]=g.Astar(1,v_nearest);
         c_min=c+g.distance(v_nearest,v_new);
         
@@ -137,11 +139,11 @@ while ~isreached
             c=c+g.distance(v_near,v_new);
             
             if ~prob.isobs(x_near,x_new) && (c<c_min)
-                c_min=c; x_min=x_near;
+                c_min=c; x_min=x_near; v_min=v_near;
             end
         end % for near
-        v_min=g.add_node(x_min);
-        g.add_edge(v_new,v_min);
+        
+        g.add_edge(v_min,v_new);
         isreached=norm(x_new-goal)<reach_tol;
         
         % rewiring 
@@ -169,12 +171,9 @@ prob.mapplot
 hold on
 plot(root(1),root(2),'r*')
 plot(goal(1),goal(2),'r*')
-p=g.Astar(1,g.n);
+
+p=g.Astar(1,g.closest(goal));
 g.highlight_path(p)
-
-
-
-
 
 
 
