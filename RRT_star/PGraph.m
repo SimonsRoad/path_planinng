@@ -268,6 +268,7 @@ classdef PGraph < matlab.mixin.Copyable
         
         function delete_edge(g, e)
             g.edgelist(:,e) = [NaN; NaN];
+            g.ne=g.ne-1;
             g.ncvalid = false;  % mark connectivity as suspect
             
         end
@@ -886,7 +887,7 @@ classdef PGraph < matlab.mixin.Copyable
                             continue;
                         end
                         p = g.coord(v);
-                        if opt.dims == 3
+                        if opt.dims >= 3
                             plot3(p(1), p(2), p(3), args{:});
                         else
                             plot(p(1), p(2), args{:});
@@ -912,7 +913,7 @@ classdef PGraph < matlab.mixin.Copyable
                 for e=g.edgelist
                     v1 = g.vertexlist(:,e(1));
                     v2 = g.vertexlist(:,e(2));
-                    if opt.dims == 3
+                    if opt.dims >= 3
                         plot3([v1(1) v2(1)], [v1(2) v2(2)], [v1(3) v2(3)], ...
                             'Color', opt.EdgeColor, 'LineWidth', opt.EdgeWidth);
                     else
@@ -933,7 +934,7 @@ classdef PGraph < matlab.mixin.Copyable
                         'MarkerFaceColor', opt.NodeFaceColor, ...
                         'MarkerSize', opt.NodeSize, ...
                         'MarkerEdgeColor', opt.NodeEdgeColor };
-                    if opt.dims == 3
+                    if opt.dims >= 3
                         plot3(g.vertexlist(1,i), g.vertexlist(2,i), g.vertexlist(3,i), args{:});
                     else
                         plot(g.vertexlist(1,i), g.vertexlist(2,i), args{:});
@@ -1101,7 +1102,7 @@ classdef PGraph < matlab.mixin.Copyable
                 'MarkerEdgeColor', opt.NodeEdgeColor };
             
             for v=verts
-                if g.ndims == 3
+                if g.ndims >= 3
                     plot3(g.vertexlist(1,v), g.vertexlist(2,v), g.vertexlist(3,v), ...
                         markerprops{:});
                 else
@@ -1167,7 +1168,7 @@ classdef PGraph < matlab.mixin.Copyable
                 'Color', opt.EdgeColor, ...
                 'LineWidth', opt.EdgeThickness };
             
-            if g.ndims == 3
+            if g.ndims >= 3
                 plot3([v1(1) v2(1)], [v1(2) v2(2)], [v1(3) v2(3)], lineprops{:});
             else
                 plot([v1(1) v2(1)], [v1(2) v2(2)], lineprops{:});
@@ -1399,7 +1400,7 @@ classdef PGraph < matlab.mixin.Copyable
                 end
             else switch g.measure
                     case 'Euclidean'
-                        d = colnorm( bsxfun(@minus, x1, x2) );
+                        d = colnorm( bsxfun(@minus, x1(1:3,:), x2(1:3,:)) );
                         
                     case 'SE2'
                         d = bsxfun(@minus, x1, x2) * g.dweight;
@@ -1414,8 +1415,12 @@ classdef PGraph < matlab.mixin.Copyable
                         d=(x1-x2)'*S*(x1-x2);
                         
                     case 'rpy'
-                        d=g.dweight(1)*norm((x1(1:3)-x2(1:3)))^2+...
-                            g.dweight(2)*norm((x1(4:6)-x2(4:6)))^2;
+                        d=(x1-x2)*g.dweight(1);
+                        d(4:end,:)=(x1(4:end)-x2(4:end,:))*g.dweight(2);
+                        d=colnorm(d);
+
+                        
+                        
                     otherwise
                         error('unknown distance measure', g.measure);
                 end
