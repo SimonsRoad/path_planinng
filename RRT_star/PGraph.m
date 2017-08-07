@@ -866,7 +866,7 @@ classdef PGraph < matlab.mixin.Copyable
                             end
                         end
                         if ~isempty(coords)
-                            if opt.dims == 3
+                            if opt.dims >= 3
                                 plot3(coords(1,:), coords(2,:), coords(3,:), 'Color', color, 'LineWidth', opt.EdgeWidth);
                             else
                                 plot(coords(:,1), coords(:,2), 'Color', color, 'LineWidth', opt.EdgeWidth);
@@ -1412,6 +1412,10 @@ classdef PGraph < matlab.mixin.Copyable
                         d = colnorm( d );
                     case 'LQR'
                         d=(x1-x2)'*S*(x1-x2);
+                        
+                    case 'rpy'
+                        d=g.dweight(1)*norm((x1(1:3)-x2(1:3)))^2+...
+                            g.dweight(2)*norm((x1(4:6)-x2(4:6)))^2;
                     otherwise
                         error('unknown distance measure', g.measure);
                 end

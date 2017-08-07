@@ -101,15 +101,15 @@ p=g.Astar(1,g.n);
 g.highlight_path(p)
 
 
-%% planning - RRT*
-g=PGraph(2);
-g.set_gamma(0.5);
-ndim=2; ranges=[0 10; 0 10];
-obs{1}=[2 3;2 8]; obs{2}=[6 8;4 6];
+%% planning - RRT* / only xyz
+g=PGraph(3);
+g.set_gamma(1);
+ndim=3; ranges=[0 10; 0 10; 0 10];
+obs{1}=[2 3;2 8;2 8]; obs{2}=[6 8;4 6;2 8];
 prob=problem(ndim,ranges,obs); 
 N=200;
-root=[0.1 0.1]';
-goal=[9 5.5]';
+root=[0.1 0.1 0.1]';
+goal=[9 5.5 5.5]';
 g.add_node(root);
 
 prob.mapplot
@@ -117,7 +117,7 @@ hold on
 
 isreached=0;
 reach_tol=1e-2;
-while g.n<20000
+while g.n<5000
     x_rand=sample(prob);
 %     plot(x_rand(1),x_rand(2),'r*')
     [v_nearest]=g.closest(x_rand);
@@ -169,12 +169,18 @@ end
 % g.plot
 prob.mapplot
 hold on
-plot(root(1),root(2),'r*')
-plot(goal(1),goal(2),'r*')
+plot3(root(1),root(2),root(3),'r*')
+plot3(goal(1),goal(2),goal(3),'r*')
 
 p=g.Astar(1,g.closest(goal));
 g.highlight_path(p)
+%% N points generation 
+N=3;
+rot_mat=eul2r(pi/6,pi/6,pi/4); t=[1 1 1]'; 
+T=SE3(rot_mat,t);
 
-
+pnts=Npoint_gen(T,2,N);
+figure()
+plot3(pnts(1,:),pnts(2,:),pnts(3,:),'ko')
 
 
