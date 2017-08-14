@@ -1,67 +1,3 @@
- %% sampling
-ndim=3; ranges=[0 20; 0 20; 0 20 ; 0 pi; 0 pi ;0 pi];
-obs{1}=[2 3;2 8;2 8]; obs{2}=[6 8;4 6;2 8];
-N=3;
-prob=problem(ndim,ranges,obs,N); 
-prob.mapplot;
-hold on
-% axis(reshape((ranges(1:3,:)*1.5).',1,[]))
-q_rand=sample(prob);
-q_next=q_rand+[-4 0 0 0.1 0.1 0.1]';
-draw_drone(q_rand,1.5,0.5,2)
-draw_drone(q_next,1.5,0.5,2)
-
-%% planning - RRT* / xyz_rpy
-g=PGraph(6,'distance','rpy','dweight',[2 1]);
-g.set_gamma(1);
-ndim=3; ranges=[0 20; 0 20; 0 20 ; 0 pi; 0 pi ;0 pi];
-obs{1}=[5 6;8 14;2 8]; obs{2}=[13 17;8 11;2 8];
-prob=problem(ndim,ranges,obs,3); 
-N=200;
-root=[0.1 0.1 0.1 0 0 0]';
-goal=[16 16 8 0 0 0]';
-g.add_node(root);
-
-prob.mapplot
-hold on
-
-plot3(root(1),root(2),root(3),'r*')
-plot3(goal(1),goal(2),goal(3),'r*')
-
-%%
-
-x_rand=sample(prob);
-[v_nearest]=g.closest(x_rand);
-% plot3(x_rand(1),x_rand(2),x_rand(3),'bo')
-x_nearest=g.vertexlist(:,v_nearest);
-
-x_new=steer(x_nearest,x_rand);
-
-plot3(x_new(1),x_new(2),x_new(3),'b*')
-v_new=g.add_node(x_new);
-g.add_edge(v_nearest,v_new)
-
-g.plot
-
-%%
-g=PGraph(6,'distance','rpy','dweight',[2 1]);
-g.set_gamma(3);
-ndim=3; ranges=[0 20; 0 20; 0 20 ; 0 pi; 0 pi ;0 pi];
-obs{1}=[5 6;8 14;2 8]; obs{2}=[13 17;8 11;2 8];
-
-prob=problem(ndim,ranges,obs,3); 
-root=[0.1 0.1 0.1 0 0 0]';
-goal=[16 16 8 0 0 0]';
-g.add_node(root);
-
-prob.mapplot
-hold on
-
-plot3(root(1),root(2),root(3),'r*')
-plot3(goal(1),goal(2),goal(3),'r*')
-
-
-%%
 
 isreached=0;
 reach_tol=1e-2;
@@ -120,8 +56,13 @@ while g.n<4000
                     end
                 end
                 
+%                 g.highlight_node(v_near,'NodeFaceColor','b')
+%                 g.highlight_node(v_parent,'NodeFaceColor','g')
+%                 g.highlight_node(v_new,'NodeFaceColor','r')
                 
-                g.delete_edge(intersect(g.edges(v_parent),g.edges(v_near)));
+                
+                del_edge=intersect(g.edges(v_parent),g.edges(v_near));
+                g.delete_edge(del_edge);
                 g.add_edge(v_new,v_near);
                 
             end
@@ -131,24 +72,3 @@ while g.n<4000
         
     end 
 end
-%% post processing 
-% g.plot
-
-prob.mapplot
-hold on
-
-plot3(root(1),root(2),root(3),'r*')
-plot3(goal(1),goal(2),goal(3),'r*')
-
-
-p=g.Astar(1,g.closest(goal));
-
-for v=p
-    draw_drone(g.vertexlist(:,v),1.5,0.5,2)
-    pause(1)
-end
-
-%% plotting 
-g.highlight_path(p)
-
-

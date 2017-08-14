@@ -37,7 +37,7 @@ plot3(xyl(1:2,1),xyl(1:2,2),xyl(1:2,3),'LineWidth',w,'Color','k')
 plot3(xyl(3:4,1),xyl(3:4,2),xyl(3:4,3),'LineWidth',w,'Color','k')
 
 for i=1:4
-    plot3(propellers{i}(:,1),propellers{i}(:,2),propellers{i}(:,3),'r')
+    plot3(propellers{i}(:,1),propellers{i}(:,2),propellers{i}(:,3),'b')
 end
 
 

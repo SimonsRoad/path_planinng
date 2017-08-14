@@ -123,7 +123,7 @@ classdef PGraph < matlab.mixin.Copyable
         gamma  
     end
     
-    properties (Dependent)
+    properties 
         n               % number of nodes/vertices
         ne              % number of edges
         nc              % number of components
@@ -178,6 +178,7 @@ classdef PGraph < matlab.mixin.Copyable
         function set_gamma(g,gamma)
             g.gamma=gamma;
         end
+        
                 
         
         function v = add_node(g, coord, vfrom, varargin)
@@ -267,7 +268,7 @@ classdef PGraph < matlab.mixin.Copyable
         end
         
         function delete_edge(g, e)
-            g.edgelist(:,e) = [NaN; NaN];
+            g.edgelist(:,e) = [NaN ;NaN];
             g.ne=g.ne-1;
             g.ncvalid = false;  % mark connectivity as suspect
             
@@ -911,8 +912,13 @@ classdef PGraph < matlab.mixin.Copyable
                 % show edges
                 if opt.edges
                 for e=g.edgelist
+                    try
                     v1 = g.vertexlist(:,e(1));
                     v2 = g.vertexlist(:,e(2));
+                    catch
+                       fprintf('egde was %f',e) 
+                    end
+                    
                     if opt.dims >= 3
                         plot3([v1(1) v2(1)], [v1(2) v2(2)], [v1(3) v2(3)], ...
                             'Color', opt.EdgeColor, 'LineWidth', opt.EdgeWidth);
