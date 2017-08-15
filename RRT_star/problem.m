@@ -15,6 +15,7 @@ classdef problem
         end
         
         function mapplot(problem)
+            
             figure()
             axis(reshape(problem.range(1:3,:).',1,[]))
             hold on
@@ -33,9 +34,10 @@ classdef problem
         end
          
         function isobs=isobs1(problem,x)
+            % is a state x in obs?
             nobs=length(problem.obs);            
             isobs=0;
-            Npnts=Npoint_gen(x,1.5,problem.N);
+            Npnts=Npoint_gen(x,1.5,problem.N); % 1.5 = length from tip to center 
             for i=1:nobs
                 cur_obs=problem.obs{i};
                 isobs=isobs || iswithin(Npnts,cur_obs);
@@ -46,6 +48,7 @@ classdef problem
         end
         
         function isobs=isobs2(problem,x1,x2)
+            % are the states along path x1-x2 in obs?
             testnb=5;
             testlist=pnt_gen(x1,x2,testnb);
             isobs=0;

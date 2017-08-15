@@ -2,7 +2,7 @@ function draw_drone(q,l,r,w)
 % T = SE3 
 
 
-T=SE3(eul2r(q(4),q(5),q(6)),[q(1) q(2) q(3)]');
+T=SE3(rotx(q(4))*roty(q(5))*rotz(q(6)),[q(1) q(2) q(3)]');
 
 R=double(T);
 xl=[-l 0 0 ; l 0 0];
