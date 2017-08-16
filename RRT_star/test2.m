@@ -27,10 +27,10 @@ g.set_gamma(3);
 
 % agile scenario
 ndim=3;
-obs{1}=[0 2;2 15;-5 5];
-obs{2}=[0 2;-15 -2;-5 5];
-% obs{3}=[0 2 ;-3 3;-5 -1];
-% obs{4}=[0 2;-3 3;1 5];
+obs{1}=[0 2;3 15;-5 5];
+obs{2}=[0 2;-15 -3;-5 5];
+obs{3}=[0 2 ;-3 3;-5 -1];
+obs{4}=[0 2;-3 3;1 5];
 
 % for i=1:length(obs)
 %     obs{i}=rotx(pi/6)*obs{i};
@@ -45,7 +45,7 @@ prob=problem(ndim,ranges,obs,3);
 
 prob.mapplot
 hold on
-root=[-7 10 0 0 0 0]';
+root=[-7 10 0 pi/6 0 0]';
 
 
 g.add_node(root);
@@ -140,19 +140,25 @@ while g.n<3000
 end
 %% post processing 
 % g.plot
-figure
-prob.mapplot
-hold on
 
-plot3(root(1),root(2),root(3),'r*')
-plot3(goal(1),goal(2),goal(3),'r*')
 
 
 p=g.Astar(1,g.closest(goal));
 
 for v=p
+
+    
+    
+    prob.mapplot
+    hold on
+
+    plot3(root(1),root(2),root(3),'r*')
+    plot3(goal(1),goal(2),goal(3),'r*')
+
     draw_drone(g.vertexlist(:,v),1.5,0.5,2)
     pause(1)
+    
+    
 end
 
 %% plotting 

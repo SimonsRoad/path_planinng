@@ -916,7 +916,7 @@ classdef PGraph < matlab.mixin.Copyable
                     v1 = g.vertexlist(:,e(1));
                     v2 = g.vertexlist(:,e(2));
                     catch
-                       fprintf('egde was %f',e) 
+%                        fprintf('egde was %f',e) 
                     end
                     
                     if opt.dims >= 3

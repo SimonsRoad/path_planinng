@@ -16,7 +16,6 @@ classdef problem
         
         function mapplot(problem)
             
-            figure()
             axis(reshape(problem.range(1:3,:).',1,[]))
             hold on
             nobs=length(problem.obs);

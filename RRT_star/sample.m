@@ -29,10 +29,27 @@ function x_rand=sample(problem)
         
         
         % sampling
-        for i=1:d+3
+        for i=4:6
             ith_range=problem.range(i,:);
             x_rand(i)=(ith_range(2)-ith_range(1))*rand+ith_range(1);
         end
+        
+        % difficulty sampling
+        is_ds=rand;
+        diff_region=[-4 4; -3 3;-1 1];
+        if is_ds<0.4  
+            for i=1:3
+            x_rand(i)=(diff_region(i,2)-diff_region(i,1))*rand+diff_region(i,1);
+            end
+        else
+            for i=1:3
+            ith_range=problem.range(i,:);
+            x_rand(i)=(ith_range(2)-ith_range(1))*rand+ith_range(1);
+            end
+        end
+        
+        
+        
         Npnts=Npoint_gen(x_rand,1.5,N);
 
         % range check
