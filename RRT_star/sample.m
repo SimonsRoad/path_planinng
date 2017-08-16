@@ -37,7 +37,7 @@ function x_rand=sample(problem)
         % difficulty sampling
         is_ds=rand;
         diff_region=[-4 4; -3 3;-1 1];
-        if is_ds<0.4  
+        if is_ds<0.7
             for i=1:3
             x_rand(i)=(diff_region(i,2)-diff_region(i,1))*rand+diff_region(i,1);
             end

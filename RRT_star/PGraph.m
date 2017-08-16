@@ -179,7 +179,102 @@ classdef PGraph < matlab.mixin.Copyable
             g.gamma=gamma;
         end
         
-                
+        function x_new=extend(g,varargin)
+             prob=varargin{1};  
+
+            if nargin<3
+                x_rand=sample(prob);
+            else
+                x_rand=varargin{2};        
+            end
+
+            [v_nearest]=g.closest(x_rand);
+            x_nearest=g.vertexlist(:,v_nearest);
+            x_new=steer(x_nearest,x_rand);
+        %     plot3(x_new(1),x_new(2),x_new(3),'bo')
+            % obstacle free?
+            if ~prob.isobs2(x_new,x_nearest)
+                v_new=g.add_node(x_new);
+                V_near=g.near(v_new);
+                % pick the node for minimum cost
+                x_min=x_nearest;  v_min=v_nearest;
+                [~,c]=g.Astar(1,v_nearest);
+                c_min=c+g.distance(v_nearest,v_new);
+
+                for i=1:length(V_near)
+                    v_near=V_near(i);
+                    x_near=g.vertexlist(:,v_near); 
+                    [~,c]=g.Astar(1,v_near);
+                    c=c+g.distance(v_near,v_new);
+
+                    if ~prob.isobs2(x_near,x_new) && (c<c_min)
+                        c_min=c; x_min=x_near; v_min=v_near;
+                    end
+                end % for near
+
+                g.add_edge(v_min,v_new);
+
+
+
+                % rewiring 
+                for i=1:length(V_near)
+
+
+
+                    v_near=V_near(i);
+                    x_near=g.vertexlist(:,v_near); 
+
+                    [~,c_new]=g.Astar(1,v_new);
+                    c=c_new+g.distance(v_near,v_new);
+                    [~,c_near]=g.Astar(1,v_near);
+                    if ~prob.isobs2(x_near,x_new) && (c<c_near)
+
+                        %finding x_parent 
+                        v_parent_cand=g.neighbours(v_near);
+                        v_parent=g.neighbours_in(v_near);
+
+                        for vv=v_parent_cand
+                            if length(g.Astar(1,v_parent))>length(g.Astar(1,vv))
+                                    v_parent=vv;
+                            end
+                        end
+
+
+                        g.delete_edge(intersect(g.edges(v_parent),g.edges(v_near)));
+                        g.add_edge(v_new,v_near);
+
+                    end
+
+
+                end
+
+            end 
+
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+        end
         
         function v = add_node(g, coord, vfrom, varargin)
             %PGraph.add_node Add a node
@@ -197,12 +292,12 @@ classdef PGraph < matlab.mixin.Copyable
             %
             % See also PGraph.add_edge, PGraph.data, PGraph.getdata.
             
-            if length(coord) ~= g.ndims
-                error('coordinate length different to graph coordinate dimensions');
-            end
+%             if length(coord) ~= g.ndims
+%                 error('coordinate length different to graph coordinate dimensions');
+%             end
             
             % append the coordinate as a column in the vertex matrix
-            g.vertexlist = [g.vertexlist coord(:)];
+            g.vertexlist = [g.vertexlist coord];
             v = g.n;
             
             if g.verbose
@@ -236,15 +331,28 @@ classdef PGraph < matlab.mixin.Copyable
                 fprintf('add edge %d -> %d\n', v1, v2);
             end
             e = [];
-            for vv=v2(:)'
-                g.edgelist = [g.edgelist [v1; vv]];
+            
+%             for vv=v2(:)'
+%                 g.edgelist = [g.edgelist [v1; vv]];
+%                 e = [e numcols(g.edgelist)];
+%                 if (nargin < 4) || isempty(d)
+%                     d = g.distance(v1, vv);
+%                 end
+%                 g.edgelen = [g.edgelen d];
+%             end
+%             g.ncvalid = false;  % mark connectivity as suspect
+            for i=1:length(v1)
+                g.edgelist = [g.edgelist [v1(i); v2(i)]];
                 e = [e numcols(g.edgelist)];
                 if (nargin < 4) || isempty(d)
-                    d = g.distance(v1, vv);
+                    d = g.distance(v1(i), v2(i));
                 end
                 g.edgelen = [g.edgelen d];
             end
             g.ncvalid = false;  % mark connectivity as suspect
+
+
+
             
         end
         
@@ -268,7 +376,7 @@ classdef PGraph < matlab.mixin.Copyable
         end
         
         function delete_edge(g, e)
-            g.edgelist(:,e) = [NaN ;NaN];
+            g.edgelist(:,e) = [];
             g.ne=g.ne-1;
             g.ncvalid = false;  % mark connectivity as suspect
             
