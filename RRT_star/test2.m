@@ -29,8 +29,8 @@ g.set_gamma(3);
 ndim=3;
 obs{1}=[0 2;3 15;-5 5];
 obs{2}=[0 2;-15 -3;-5 5];
-obs{3}=[0 2 ;-3 3;-5 -1];
-obs{4}=[0 2;-3 3;1 5];
+obs{3}=[0 2 ;-3 3;-5 -0.5];
+obs{4}=[0 2;-3 3;0.5 5];
 
 % for i=1:length(obs)
 %     obs{i}=rotx(pi/6)*obs{i};
@@ -63,6 +63,8 @@ xlabel('x')
 ylabel('y')
 zlabel('z')
 grid on
+
+draw_drone(zeros(1,6),1.5,0.5,2)
 
 
 
