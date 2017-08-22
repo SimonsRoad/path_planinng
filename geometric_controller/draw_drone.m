@@ -1,8 +1,8 @@
-function draw_drone(q,l,r,w)
+function draw_drone2(R,x,l,r,w)
 % T = SE3 
 
 
-T=SE3(rotx(q(4))*roty(q(5))*rotz(q(6)),[q(1) q(2) q(3)]');
+T=SE3(R,x);
 
 R=double(T);
 xl=[-l 0 0 ; l 0 0];
@@ -33,8 +33,10 @@ for i=1:4
 end
 
 
-plot3(xyl(1:2,1),xyl(1:2,2),xyl(1:2,3),'LineWidth',w,'Color','r')
-plot3(xyl(3:4,1),xyl(3:4,2),xyl(3:4,3),'LineWidth',w,'Color','k')
+quiver(xyl(1:2,1),xyl(1:2,2),xyl(1:2,3),'LineWidth',w,'Color','r')
+quiver(xyl(3:4,1),xyl(3:4,2),xyl(3:4,3),'LineWidth',w,'Color','k')
+
+
 
 for i=1:4
     plot3(propellers{i}(:,1),propellers{i}(:,2),propellers{i}(:,3),'b')
