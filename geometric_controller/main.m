@@ -14,17 +14,16 @@ R=R0;
 rs=zeros(3,nb); % position history
 Rs=zeros(3,3,nb); % rotation matrix history 
 Rds=zeros(3,3,nb);
-
+wds=zeros(3,nb);
 draw_drone2(R,r,1,0.5,2)
 
 f=zeros(4,1);
-Kp=eye(3)/2; Kv=eye(3)/2; KR=eye(3)/10; Kw=eye(3)/10;
+Kp=eye(3)*10; Kv=eye(3)*5; KR=eye(3)/5 ;Kw=eye(3)/10;
+figure
 axis([-10 10 -10 10 -3 3])
 hold on
 %time integration 
-
 items = get(gca, 'Children');
-
 
 for i=1:nb-2    
     
@@ -32,13 +31,15 @@ for i=1:nb-2
     u1=F_des'*R(:,3);
     
     zb_des=F_des/norm(F_des);
-    yb_des=cross(zb_des,[cos(yawd(i)) sin(yawd(i)) 0]'); yb_des=yb_des/norm(yb_des);
+    yb_des=cross(zb_des,[cos(yawd(i)) sin(yawd(i)) 0]'); 
+    
+    yb_des=yb_des/norm(yb_des);
     xb_des=cross(yb_des,zb_des);
     
     
     Rd=[xb_des yb_des zb_des];
     
-    trplot([Rd r; 0 0 0 1]);
+    trplot([Rd rd(:,i); 0 0 0 1]);
     
     Rds(:,:,i)=Rd;
     
@@ -46,15 +47,17 @@ for i=1:nb-2
     if i==1
         wd=zeros(3,1);
     else
-        wd=vex(Rd'*(Rd-Rds(:,:,i-1))/dt);
+        wd=vex((Rd-Rds(:,:,i-1))/dt*Rd');
     end
+    wds(:,i)=wd;
+    
         
     eR=0.5*vex(Rd'*R-R'*Rd);
-    ew=R'*w-R'*Rd*wd;
+    ew=w-R'*Rd*wd;
     
     u234=-KR*eR-Kw*ew;
     
-    f=[u1 ;u234];
+    f=[u1 ;u234]
     
     [rddot,wdot,Rdot]=dynamics(R,w,f);
     
@@ -72,7 +75,8 @@ for i=1:nb-2
     
     draw_drone2(R,r,1,0.5,2)    
     
-    pause(1)
+    pause(1e-1)
+   
 end
 
 %plotting
