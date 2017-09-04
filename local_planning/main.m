@@ -69,11 +69,16 @@ end
 
 for i=1:n
     for j=1:n
+<<<<<<< HEAD
         Mij=zeros(4*m);
         for k=1:m
             Mij(4*k-3:4*k,4*k-3:4*k)=C(i,j,k)*blkdiag(0,eye(3));
         end
         M(4*m*(i)+1:4*m*(i+1),4*m*(j)+1:4*m*(j+1))=Mij;    
+=======
+        M(4*i-3:4*i,4*j-3:4*j)=
+        
+>>>>>>> 938cea06db4b62c0507bc70799015cda2ae17d62
     end
 end
 
