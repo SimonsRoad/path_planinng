@@ -1,5 +1,7 @@
-function traj=traj(p,t)
-global n
+function traj=traj(p,t,n,t0,tf)
+% firstly, we need mapping betewwn non-dimensionalized and dimensional
+
+t=(t-t0)/(tf-t0);
 
 T=[eye(3) ];
 
@@ -16,8 +18,6 @@ Td2x=repmat(zeros(3),1,2);
 for i=2:n
     Td2x=[Td2x (i-1)*i*t^(i-2)*eye(3)];
 end
-
-
 
 traj.x=T*p;
 traj.dx=Tdx*p;

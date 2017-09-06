@@ -111,17 +111,30 @@ plot3(keyframe(1,:),keyframe(2,:),keyframe(3,:),'r*')
 hold on 
 axis([0 10 0 10 0 10])
 
-%% new trial 
-% refet p71-P73
-n=6; % order of polynomial
+%% new trial % refet p71-P73
+n=8; % order of polynomial
+% for better condition number of C matrix 
+C=10*rand(3*(n+1),1);
 
-C=100*rand*ones(3*(n+1));
-C=zeros(3*(n+1));
-t0=0; tf=10; tm=5;
+% IN REAL TIME DOMAIN 
+%%%%%%%%%%%%%%
+
+t0_real=1; tf_real=10; tm_real=[9 10]; t_cond_real=[t0_real tf_real tm_real];
+
+% BOUNDARY CONDITION
+%%%%%%%%%%%%%%%
+x0=zeros(3,1); xf=10*ones(3,1); 
+dx0_real=ones(3,1)/5;
 
 
-for i=4:8
-    for j=4:8
+
+% in non-dimensionalized domain:
+% mapping btw two domain
+t_cond=(t_cond_real-t0_real)/(tf_real-t0_real);
+t0=t_cond(1); tf=t_cond(2); tm=t_cond(3:end);
+
+for i=4:n
+    for j=4:n
         if i==4 && j==4
         C(3*i+1:3*(i+1),3*j+1:3*(j+1))=(factorial(i)/factorial(i-4)*factorial(j)/factorial(j-4)*(tf-t0))*eye(3);
         else
@@ -130,63 +143,91 @@ for i=4:8
     end
 end
 
+Aeq=[]; beq=[];
+A=[]; b=[];
+
 % POSTION CONTRAINT 
 % ===============
-x0=ones(3,1); xf=[10 5 -2]';
-Tx=repmat(eye(3),2,1);
-for i=1:n
-    Tx=[Tx [t0^i*eye(3) ; tf^i*(eye(3)) ]];    
-end
-
+Aeq=[Aeq ;[Tmat(t0,0,n) ; Tmat(tf,0,n)]];
+beq=[beq ;x0;xf];
 % VELOCITY CONSTRAINT
 % ================
-dx0=zeros(3,1); dxf=xf-x0;
-Tdx=repmat(zeros(3),2,1);
-for i=1:n
-    Tdx=[Tdx [i*t0^(i-1)*eye(3) ; i*tf^(i-1)*(eye(3)) ]];    
-end
+dx0=dx0_real*(tf-t0);
+Aeq=[Aeq ; Tmat(t0,1,n)];
+beq=[beq;dx0];
 
-% ACCELERATION CONSTRAINT (direction only)
+%ACCELERATION CONSTRAINT (direction only)
 % ====================
-ad=[1 1 1]';
-Td2x=repmat(zeros(3),1,2);
-for i=2:n
-    Td2x=[Td2x (i-1)*i*tm^(i-2)*eye(3)];
+ad=[0.1 0.5 0.5]';
+
+for i=1:length(tm)
+% (1) equality condition
+
+Aeq=[Aeq ; [ad(2) -ad(1) 0;0 ad(3) -ad(2)]*Tmat(tm(i),2,n)];
+beq=[beq; zeros(2,1)];
+
+% (2) inequailty condition = same direction (very improtant)
+A=[A ;[-ad(1) 0 0;0 0 0; 0 0 0]*Tmat(tm(i),2,n)]; 
+b=[b; zeros(3,1)];
+
 end
-aC=[ad(2) -ad(1) 0;0 ad(3) -ad(2)]*Td2x;
 
 % CORRIDER CONSTRAINT
 % ================
-
-
-
+n_seg=5; tlist=linspace(t0,tf,n_seg); delta=1.5;
+t=(xf-x0)/norm(xf-x0);
+r=x0;
+for i=2:n_seg-1
+   T=Tmat(tlist(i),0,n);
+   for j=1:3
+       A=[A;(T(j,:)-t(j)*t'*T)]; b=[b;delta-(t'*r)*t(j)-r(j)];
+       A=[A;-(T(j,:)-t(j)*t'*T)]; b=[b;delta+(t'*r)*t(j)-r(j)];
+   end    
+end
+    
 
 % OPIMIZATION
 % =========
+% options = optimoptions('quadprog','Display','off',);
 
-T=[Tx;Tdx;aC];
-bnd_cond=[x0; xf; dx0; dxf;[0 0]'];
+p=quadprog(C,[],A,b,Aeq,beq);
+%p=fmincon(@(x) x'*C*x,rand(3*(n+1),1),A,b,Aeq,beq);
 
-p=quadprog(C,[],[],[],T,bnd_cond);
 
- PLOTTING
-x=[]; d2x=[]; t=[];
-for time=0:0.05:10
-    t=[t  time];
-    traj_res=traj(p,time);
+%% PLOTTING
+x=[]; d2x=[]; tset=[];
+for time=t0_real:tf_real
+    tset=[tset  time];
+    traj_res=traj(p,time,n,t0_real,tf_real);
     x=[x traj_res.x];
     d2x=[d2x traj_res.d2x];
 end
 
-plot3(x(1,:), x(2,:), x(3,:))
+
+figure
+
+% tmpAspect=daspect();
+% daspect(tmpAspect([1 2 2]))
 hold on 
-quiver3(x(1,101),x(2,101),x(3,101),d2x(1,101),d2x(2,101),d2x(3,101))
+
+plot3(x0(1),x0(2),x0(3),'bo')
+plot3(xf(1),xf(2),xf(3),'ro')
+plot3(x(1,:), x(2,:), x(3,:))
 
 
+for time=linspace(t0,tf,20)
+
+traj_res=traj(p,time,n,t0,tf);
+
+quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x),traj_res.d2x(2)/norm(traj_res.d2x),traj_res.d2x(3)/norm(traj_res.d2x),'Color','r','LineWidth',1,'MaxHeadSize',2);
+%quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1),traj_res.d2x(2),traj_res.d2x(3),'Color','r','LineWidth',1,'MaxHeadSize',2);
+end
+
+figure
+
+for i=1:3
+    subplot(3,1,i)
+    plot(tset,x(i,:))
+end
 
 
-
-
-
-
-        
