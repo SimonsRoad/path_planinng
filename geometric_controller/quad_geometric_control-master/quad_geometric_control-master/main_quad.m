@@ -65,6 +65,7 @@ Omega0 = zeros(3,1);
 % setting up x0 (initial state)
 % -----------------------------
 x0 = [xQ0; vQ0; reshape(R0,9,1); Omega0 ];
+%traj_plot([0 20])
 
 %% SIMULATION
 % ==========
@@ -103,9 +104,10 @@ end
     grid on; title('z');legend('z','z_d');%axis equal;
     xlabel('time');ylabel('z [m]');
     subplot(2,2,4);
-    plot3(x(ind,1),x(ind,2),x(ind,3),'-g',xd(ind,1),xd(ind,2),xd(ind,3),':r');
-    grid on; title('trajectory');legend('traj','traj_d');%axis equal;
-    xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
+%     plot3(x(ind,1),x(ind,2),x(ind,3),'-g',xd(ind,1),xd(ind,2),xd(ind,3),':r');
+%     grid on; title('trajectory');legend('traj','traj_d');%axis equal;
+%     xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
+
 
     figure;
     subplot(2,1,1);
@@ -114,7 +116,25 @@ end
     subplot(2,1,2);
     plot(t(ind),psi_evL(ind));
     grid on; title('velocity error');legend('psi-evL');
- 
+% ANIMATION 
+    figure()
+    hold on
+
+    frame_nb=10;
+    step=floor(length(t)/frame_nb);
+    traj_plot([0 20]);
+    
+    for i=1:step:length(t)
+    R=reshape(x(i,7:15),3,3);
+    draw_drone2(R,x(i,1:3),1000,500,2)
+              
+    end
+    hold off
+    
+    
+    
+    
+    
 % % ANIMATION
 % % =========
 % keyboard;
@@ -137,23 +157,12 @@ e3 = data.params.e3;
 
 % fetching desired states
 % -----------------------
-% [trajd] = get_nom_traj(data.params,get_flats(t));
-% 
-% xQd = trajd.xQ;
-% vQd = trajd.vQ;
-% aQd = trajd.aQ;
-% 
-% Rd = trajd.R;
-% Omegad = trajd.Omega;
-% dOmegad = trajd.dOmega;
-
-xQd = [0;02;02];
-vQd = [0;0;0];
-aQd = [0;0;0];
-
-Rd = eye(3);
-Omegad = zeros(3,1);
-dOmegad = zeros(3,1);
+traj=get_flats(t);
+xQd=traj.x;
+vQd=traj.dx;
+aQd=traj.d2x;
+psid=traj.psi;
+Omegad =zeros(3,1);
 
 
 
@@ -180,17 +189,25 @@ dx = [];
     k2 = 0.5*diag([4, 4, 10]);
     A = (-k1*eQ - k2*deQ + (mQ)*(aQd + g*e3));
     normA = norm(A);
-    b3c = A/norm(A);
+    b3d = A/norm(A);
 
     f = vec_dot(A,b3);
     
-    % Attitude Control
-    b1d = e1;
-    b1c = -vec_cross(b3c,vec_cross(b3c,b1d));
-    b1c = b1c/norm(vec_cross(b3c,b1d));
-    Rc = [b1c vec_cross(b3c,b1c) b3c];
-    Rd = Rc;
+     % Attitude Control - to follow b1d specified trajectory 
+%     b1d = e1;
+%     b1c = -vec_cross(b3c,vec_cross(b3c,b1d));
+%     b1c = b1c/norm(vec_cross(b3c,b1d));
+%     Rc = [b1c vec_cross(b3c,b1c) b3c];
+%     Rd = Rc;
 
+     % Attitude Control - to follow yaw specified trajectory 
+     b1c=[cos(psid) sin(psid) 0]';
+     b2d=cross(b3d,b1c); b2d=b2d/norm(b2d);
+     b1d=cross(b2d,b3d);
+     
+     Rd=[b1d b2d b3d];
+    
+    
     if(norm(Rd'*Rd-eye(3)) > 1e-2)
         disp('Error in R') ; keyboard ;
     end
@@ -230,19 +247,41 @@ end
     
 end
 
-%%
-function[traj] = get_flats(t)
 
+
+%%
+
+function [traj] = get_flats(t)
 traj.x = [6*t^2-4*t^3;6*t^2-4*t^3;6*t^2-4*t^3];
 traj.dx = [12*t-12*t^2;12*t-12*t^2;12*t-12*t^2];
 traj.d2x = [12-24*t;12-24*t;12-24*t];
 traj.d3x = [-24;-24;-24];
 traj.d4x = [0;0;0];
 
-traj.psi = 30*t^2-20*t^3;
+traj.psi = pi/80*t;
 traj.dpsi = 60*t-60*t^2;
 traj.d2psi = 60-120*t;
 traj.d3psi = -120;
 traj.d4psi = 0;
+end
+
+function traj_plot(tspan)
+% tspan=[to tf]
+figure
+x=[]; y=[]; z=[];
+for t=tspan(1):0.5:tspan(2)
+    traj=get_flats(t);
+    x=[x traj.x(1)];
+    y=[y traj.x(2)];
+    z=[z traj.x(3)];
+end
+plot3(x,y,z)
 
 end
+
+
+
+
+
+
+
