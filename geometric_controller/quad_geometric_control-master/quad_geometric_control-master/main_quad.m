@@ -1,19 +1,15 @@
 function[varargout] =  main_quad(varargin)
 % Geometric control of Quadrotor on SE(3)
 % http://www.math.ucsd.edu/~mleok/pdf/LeLeMc2010_quadrotor.pdf
-% 
-% Hybrid Robotics Lab
-% Carnegie Mellon University
-% Author: vkotaru@andrew.cmu.edu
-% Date: June-8-2016
-% Last Updated: June-8-2016
+%% TRAJECTORY GENERATION
+
+trajectory_gen
 
 %% INITIALZING WORKSPACE
 % ======================
 % Clear workspace
 % ---------------
 % clear; 
-close all; 
 % clc;
 
 % Add Paths
@@ -25,13 +21,14 @@ addpath('./Geometry-Toolbox/');
 %% INITIALZING PARAMETERS
 % ======================
 % System constants and parameters
-data.params.mQ = 0.5 ;
-data.params.J = diag([0.557, 0.557, 1.05]*10e-2);
+data.params.mQ = 0.2 ;
+data.params.J = diag([0.557, 0.557, 1.05]*10e-3);
 data.params.g = 9.81 ;
 data.params.e1 = [1;0;0] ;
 data.params.e2 = [0;1;0] ;
 data.params.e3 = [0;0;1] ;
-
+data.params.p=p; % coefficients of polynomial  
+data.params.n=n; % order of polynomial  
 
 %% INTIALIZING - INTIAL CONDITIONS
 % ================================
@@ -43,10 +40,10 @@ vQ0 = zeros(3,1);
 R0 = RPYtoRot_ZXY(010*pi/180,0*pi/180, 0*pi/180) ;
 Omega0 = zeros(3,1);
 
-xQ0 = [1;3;2]; 1*ones(3,1);
-vQ0 = zeros(3,1);
+xQ0 = x0-ones(3,1);
+vQ0 = dx0_real;
 % 
-R0 = RPYtoRot_ZXY(0*pi/180, 10*pi/180, 20*pi/180) ;
+R0=[1 0 0; 0 1 0 ; 0 0 1];
 Omega0 = zeros(3,1);
 
 
@@ -64,15 +61,21 @@ Omega0 = zeros(3,1);
 % [xL; vL; R; Omega]
 % setting up x0 (initial state)
 % -----------------------------
+<<<<<<< HEAD
 x0 = [xQ0; vQ0; reshape(R0,9,1); Omega0 ];
 %traj_plot([0 20])
+=======
+x_init = [xQ0; vQ0; reshape(R0,9,1); Omega0 ];
+>>>>>>> 9922288ccf8eb667e958caa9fb4b9a3e1a4abe4e
 
 %% SIMULATION
 % ==========
 disp('Simulating...') ;
 odeopts = odeset('RelTol', 1e-8, 'AbsTol', 1e-9) ;
 % odeopts = [] ;
-[t, x] = ode15s(@odefun_quadDynamics, [0 20], x0, odeopts, data) ;
+tspan=[t0_real tf_real];
+data.params.tspan=tspan;
+[t, x] = ode15s(@odefun_quadDynamics, tspan, x_init, odeopts, data) ;
 
 % Computing Various Quantities
 disp('Computing...') ;
@@ -104,10 +107,18 @@ end
     grid on; title('z');legend('z','z_d');%axis equal;
     xlabel('time');ylabel('z [m]');
     subplot(2,2,4);
+<<<<<<< HEAD
 %     plot3(x(ind,1),x(ind,2),x(ind,3),'-g',xd(ind,1),xd(ind,2),xd(ind,3),':r');
 %     grid on; title('trajectory');legend('traj','traj_d');%axis equal;
 %     xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
 
+=======
+    
+    plot3(x(ind,1),x(ind,2),x(ind,3),'-g',xd(ind,1),xd(ind,2),xd(ind,3),':r');
+    
+    grid on; title('trajectory');legend('traj','traj_d');%axis equal;
+    xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
+>>>>>>> 9922288ccf8eb667e958caa9fb4b9a3e1a4abe4e
 
     figure;
     subplot(2,1,1);
@@ -116,6 +127,7 @@ end
     subplot(2,1,2);
     plot(t(ind),psi_evL(ind));
     grid on; title('velocity error');legend('psi-evL');
+<<<<<<< HEAD
 % ANIMATION 
     figure()
     hold on
@@ -134,6 +146,18 @@ end
     
     
     
+=======
+ 
+    figure;
+    hold on
+    for i=round(linspace(1,ind(end),10))
+        R_cur=reshape(x(i,7:15),3,3);
+        t_cur=x(i,1:3)';
+        T_cur=[[R_cur t_cur]; 0 0 0 1];
+        trplot(T_cur)
+        
+    end
+>>>>>>> 9922288ccf8eb667e958caa9fb4b9a3e1a4abe4e
     
 % % ANIMATION
 % % =========
@@ -143,6 +167,7 @@ end
 
 end
 
+<<<<<<< HEAD
 %%
 function[dx, xd, f,M] = odefun_quadDynamics(t,x,data)
 % Extracing parameters
@@ -285,3 +310,6 @@ end
 
 
 
+=======
+
+>>>>>>> 9922288ccf8eb667e958caa9fb4b9a3e1a4abe4e
