@@ -1,6 +1,7 @@
 function answer=iswithin(value,ranges)
-% value= D x 1 
-% ranges = D x 2
+% value= D x N
+% ranges = D x 2 
+% if any one point of N value points is included in ranges, it returns true 
 [d,n]=size(value);
 answer=0;
 for j=1:n

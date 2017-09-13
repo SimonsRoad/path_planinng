@@ -124,7 +124,7 @@ t0_real=1; tf_real=10; tm_real=[9 10]; t_cond_real=[t0_real tf_real tm_real];
 % BOUNDARY CONDITION
 %%%%%%%%%%%%%%%
 x0=zeros(3,1); xf=10*ones(3,1); 
-dx0_real=ones(3,1)/5;
+dx0_real=zeros(3,1);
 
 
 
@@ -171,6 +171,13 @@ A=[A ;[-ad(1) 0 0;0 0 0; 0 0 0]*Tmat(tm(i),2,n)];
 b=[b; zeros(3,1)];
 
 end
+
+%ACCELERATION CONSTRAINT (initial condition)
+% ====================
+d2x0=[1 -1 2]';
+Aeq=[Aeq ; Tmat(t0,2,n)];
+beq=[beq; d2x0];
+
 
 % CORRIDER CONSTRAINT
 % ================

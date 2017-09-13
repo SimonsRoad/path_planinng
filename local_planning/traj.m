@@ -22,4 +22,5 @@ end
 traj.x=T*p;
 traj.dx=Tdx*p;
 traj.d2x=Td2x*p;
+
 end

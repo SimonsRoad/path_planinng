@@ -39,10 +39,10 @@ classdef problem
             Npnts=Npoint_gen(x,1.5,problem.N); % 1.5 = length from tip to center 
             for i=1:nobs
                 cur_obs=problem.obs{i};
-                isobs=isobs || iswithin(Npnts,cur_obs);
+                isobs=isobs || cur_obs.isobs(Npnts); % is modified in Sep 13 
                 if isobs==1
                     break
-                end
+                end                
             end
         end
         

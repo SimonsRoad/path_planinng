@@ -1,7 +1,7 @@
 function g=RRT_star(prob,g,N)
 % prob = structure that contains graph 
 % g=graph
-% n=how much iteration will go on 
+% N=how much iteration will go on 
 
 while g.n<N
     x_rand=sample(prob);
