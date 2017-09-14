@@ -1,4 +1,3 @@
-function[varargout] =  main_quad(varargin)
 % Geometric control of Quadrotor on SE(3)
 % http://www.math.ucsd.edu/~mleok/pdf/LeLeMc2010_quadrotor.pdf
 % 
@@ -120,33 +119,25 @@ end
     xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
     
     
-%%  
-        figure;
-    subplot(2,2,1);
-    plot(t(ind),dx(ind,1),'-g',t(ind),xd(ind,4),':r');
-    grid on; title('x');legend('x','x_d');%axis equal;
-    xlabel('time');ylabel('x [m]');
-    subplot(2,2,2);
-    plot(t(ind),dx(ind,2),'-g',t(ind),xd(ind,5),':r');
-    grid on; title('y');legend('y','y_d');%axis equal;
-    xlabel('time');ylabel('y [m]');
-    subplot(2,2,3);
-    plot(t(ind),dx(ind,3),'-g',t(ind),xd(ind,6),':r');
-    grid on; title('z');legend('z','z_d');%axis equal;
-    xlabel('time');ylabel('z [m]');
-    subplot(2,2,4);
-    plot3(x(ind,1),x(ind,2),x(ind,3),'-g',xd(ind,1),xd(ind,2),xd(ind,3),':r');
+%% attitude plotting 
+    figure;
+    ind = round(linspace(1, length(t), 1000));
+    ind_trplot=round(linspace(1, length(t), 15));
     hold on
-%     for i=round(linspace(1,length(ind),10))
-%         quiver(x(i,1),x(i,2),x(i,3),x(i,7),x(i,8),x(i,9),'r')
-%     end
+    % draw the attitude frame 
+    for i=ind_trplot
+        trplot(SE3(reshape(x(i,7:15),3,3),x(i,1:3)))
+    end
+    quiver3(x(i,1),x(i,2),x(i,3),zd(1),zd(2),zd(3),'r')
+    
+    plot3(x(ind,1),x(ind,2),x(ind,3),'-g');
+    
     grid on; title('trajectory');legend('traj','traj_d');%axis equal;
     
     xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
     
     
-    
-    
+       
 %% acceleration ratio
    ind = round(linspace(round(length(t)/1.2), length(t), 1000)) ;
 
@@ -170,11 +161,7 @@ end
     axis([t(ind(1))  t(ind(end)) 0 10 ])
     
 %%
-    
-    
-    
-    
-    
+        
     
     figure;
     subplot(2,1,1);
@@ -190,21 +177,6 @@ end
 % animate_3dquad(t(ind), x(ind,:),t(ind), xd(ind,:));
 
 
-end
 
-%%
-function[traj] = get_flats(t)
 
-traj.x = [6*t^2-4*t^3;6*t^2-4*t^3;6*t^2-4*t^3];
-traj.dx = [12*t-12*t^2;12*t-12*t^2;12*t-12*t^2];
-traj.d2x = [12-24*t;12-24*t;12-24*t];
-traj.d3x = [-24;-24;-24];
-traj.d4x = [0;0;0];
 
-traj.psi = 30*t^2-20*t^3;
-traj.dpsi = 60*t-60*t^2;
-traj.d2psi = 60-120*t;
-traj.d3psi = -120;
-traj.d4psi = 0;
-
-end

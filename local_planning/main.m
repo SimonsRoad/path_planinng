@@ -160,8 +160,8 @@ beq=[beq;dx0];
 
 %ACCELERATION CONSTRAINT (direction only)
 % ====================
-zd=[0.2 0.1 0.4]';
-% ad=[0.1 0.5 0.5]';
+zd=[0.2 0.4 0.4]';
+zd=[0.4 0.1 0.4]';
 
 
 
@@ -183,20 +183,20 @@ d2x0=[0 0 0]';
 Aeq=[Aeq ; Tmat(t0,2,n)];
 beq=[beq; d2x0];
 
-
-% CORRIDER CONSTRAINT
-% ================
-n_seg=5; tlist=linspace(t0,tf,n_seg); delta=1.5;
-t=(xf-x0)/norm(xf-x0);
-r=x0;
-for i=2:n_seg-1
-   T=Tmat(tlist(i),0,n);
-   for j=1:3
-       A=[A;(T(j,:)-t(j)*t'*T)]; b=[b;delta-(t'*r)*t(j)-r(j)];
-       A=[A;-(T(j,:)-t(j)*t'*T)]; b=[b;delta+(t'*r)*t(j)-r(j)];
-   end    
-end
-    
+% 
+% % CORRIDER CONSTRAINT
+% % ================
+% n_seg=5; tlist=linspace(t0,tf,n_seg); delta=1.5;
+% t=(xf-x0)/norm(xf-x0);
+% r=x0;
+% for i=2:n_seg-1
+%    T=Tmat(tlist(i),0,n);
+%    for j=1:3
+%        A=[A;(T(j,:)-t(j)*t'*T)]; b=[b;delta-(t'*r)*t(j)-r(j)];
+%        A=[A;-(T(j,:)-t(j)*t'*T)]; b=[b;delta+(t'*r)*t(j)-r(j)];
+%    end    
+% end
+%     
 
 % OPIMIZATION
 % =========
@@ -247,7 +247,7 @@ for i=1:3
     plot(tset,d2x(i,:))
 end
 
-%% check the ratio of acceleration 
+%% check the ratio of acceleration
 figure
 subplot(2,1,1)
 hold on
