@@ -89,7 +89,7 @@ for i = ind
    xd(i,:) = xd_';
    psi_exL(i) = norm(x(i,1:3)-xd(i,1:3));
    psi_evL(i) = norm(x(i,4:6)-xd(i,4:6));
-   psi_eaL(i)=norm(x(i,7:9)-xd(i,7:9));
+   psi_eaL(i)=norm(dx(i,4:6)-xd(i,7:9));
    f(i,1)= f_;
 end
 
@@ -161,7 +161,7 @@ end
     xlabel('time');ylabel('d2x [m]');
     axis([t(ind(1))  t(ind(end)) 0 10 ])
     subplot(2,1,2);
-    plot(t(ind),(dx(ind,6)+9.81)./dx(ind,4),'-g',t(ind),zd(3)/zd(1)*ones(1,1000),':r');
+    plot(t(ind),((dx(ind,6)+9.81)./dx(ind,4)),'-g',t(ind),zd(3)/zd(1)*ones(1,1000),':r');
     str = {'$$ \ddot{z}/\ddot{x} $$', '$$ \ddot{z}_{d}/\ddot{x}_{d}  $$'};
 
     grid on; title(str{1},'Interpreter','latex');     legend(str, 'Interpreter','latex')%axis equal;

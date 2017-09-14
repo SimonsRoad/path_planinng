@@ -112,19 +112,19 @@ hold on
 axis([0 10 0 10 0 10])
 
 %% new trial % refet p71-P73
-n=8; % order of polynomial
+n=10; % order of polynomial
 % for better condition number of C matrix 
 C=10*rand(3*(n+1),1);
 
 % IN REAL TIME DOMAIN 
 %%%%%%%%%%%%%%
 
-t0_real=1; tf_real=10; tm_real=[9 10]; t_cond_real=[t0_real tf_real tm_real];
+t0_real=0; tf_real=10; tm_real=[10]; t_cond_real=[t0_real tf_real tm_real];
 
 % BOUNDARY CONDITION
 %%%%%%%%%%%%%%%
 % x0=zeros(3,1); xf=10*ones(3,1); 
-x0=zeros(3,1); xf=[0 10 0]'; 
+x0=zeros(3,1); xf=[3 10 2]'; 
 
 dx0_real=zeros(3,1);
 
@@ -160,7 +160,7 @@ beq=[beq;dx0];
 
 %ACCELERATION CONSTRAINT (direction only)
 % ====================
-zd=[0.4 0.1 0.2]';
+zd=[0.2 0.1 0.4]';
 % ad=[0.1 0.5 0.5]';
 
 
@@ -168,7 +168,7 @@ zd=[0.4 0.1 0.2]';
 for i=1:length(tm)
 % (1) equality condition
 
-Aeq=[Aeq ; [zd(2) -zd(1) 0;0 zd(3) -zd(2)]*Tmat(tm(i),2,n)];
+Aeq=[Aeq ; [zd(2) -zd(1) 0;0 zd(3)/(tf_real-t0_real)^2 -zd(2)/(tf_real-t0_real)^2]*Tmat(tm(i),2,n)];
 beq=[beq; [0 zd(2)*9.81]'];
 
 % (2) inequailty condition = same direction (very improtant)
@@ -206,6 +206,7 @@ p=quadprog(C,[],A,b,Aeq,beq);
 %p=fmincon(@(x) x'*C*x,rand(3*(n+1),1),A,b,Aeq,beq);
 
 
+
 %% PLOTTING
 x=[]; d2x=[]; tset=[];
 for time=t0_real:tf_real
@@ -225,7 +226,6 @@ hold on
 plot3(x0(1),x0(2),x0(3),'bo')
 plot3(xf(1),xf(2),xf(3),'ro')
 plot3(x(1,:), x(2,:), x(3,:))
-axis([-2 2 -2 12 -2 2])
 
 for time=linspace(t0_real+1,tf_real,40)
 
@@ -246,5 +246,17 @@ for i=1:3
     subplot(3,1,i)
     plot(tset,d2x(i,:))
 end
+
+%% check the ratio of acceleration 
+figure
+subplot(2,1,1)
+hold on
+plot(tset,d2x(1,:)./d2x(2,:),'-g');
+plot(tset,zd(1)/zd(2)*ones(1,length(tset)),':r');
+subplot(2,1,2)
+hold on
+plot(tset,((d2x(3,:)+9.81)./d2x(1,:)).^-1,'-g');
+plot(tset,zd(1)/zd(3)*ones(1,length(tset)),':r');
+
 
 

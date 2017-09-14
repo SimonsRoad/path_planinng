@@ -3,7 +3,7 @@ function traj=traj(p,t,n,t0,tf)
 
 t=(t-t0)/(tf-t0);
 
-T=[eye(3) ];
+T=[eye(3)];
 
 for i=1:n
     T=[T t^i*eye(3) ];    
@@ -19,6 +19,7 @@ for i=2:n
     Td2x=[Td2x (i-1)*i*t^(i-2)*eye(3)];
 end
 
+% this is due to temporal scaling 
 traj.x=T*p;
 traj.dx=Tdx*p/(tf-t0);
 traj.d2x=Td2x*p/(tf-t0)^2;

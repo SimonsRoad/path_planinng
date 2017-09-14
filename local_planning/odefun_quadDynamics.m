@@ -70,7 +70,8 @@ dx = [];
 
     err_R = 1/2 * vee_map(Rd'*R - R'*Rd) ;
     err_Om = Omega - R'*Rd*Omegad ;
-    M = -kR*err_R - kOm*err_Om+skew(Omega)*(J*Omega) ;
+    M = -kR*err_R - kOm*err_Om;
+%     +skew(Omega)*(J*Omega);
     
     % Equations of Motion
     % -------------------
