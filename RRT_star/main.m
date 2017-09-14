@@ -373,7 +373,7 @@ goal=[7 -10 0 0 0 0]';
 
 g1.add_node(root); g2.add_node(goal);
 
-g1=RRT_star(prob,g1,100);
+% g1=RRT_star(prob,g1,100);
 
 
 

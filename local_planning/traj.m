@@ -20,7 +20,7 @@ for i=2:n
 end
 
 traj.x=T*p;
-traj.dx=Tdx*p;
-traj.d2x=Td2x*p;
+traj.dx=Tdx*p/(tf-t0);
+traj.d2x=Td2x*p/(tf-t0)^2;
 
 end

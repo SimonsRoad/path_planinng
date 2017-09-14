@@ -123,7 +123,9 @@ t0_real=1; tf_real=10; tm_real=[9 10]; t_cond_real=[t0_real tf_real tm_real];
 
 % BOUNDARY CONDITION
 %%%%%%%%%%%%%%%
-x0=zeros(3,1); xf=10*ones(3,1); 
+% x0=zeros(3,1); xf=10*ones(3,1); 
+x0=zeros(3,1); xf=[0 10 0]'; 
+
 dx0_real=zeros(3,1);
 
 
@@ -158,23 +160,26 @@ beq=[beq;dx0];
 
 %ACCELERATION CONSTRAINT (direction only)
 % ====================
-ad=[0.1 0.5 0.5]';
+zd=[0.4 0.1 0.2]';
+% ad=[0.1 0.5 0.5]';
+
+
 
 for i=1:length(tm)
 % (1) equality condition
 
-Aeq=[Aeq ; [ad(2) -ad(1) 0;0 ad(3) -ad(2)]*Tmat(tm(i),2,n)];
-beq=[beq; zeros(2,1)];
+Aeq=[Aeq ; [zd(2) -zd(1) 0;0 zd(3) -zd(2)]*Tmat(tm(i),2,n)];
+beq=[beq; [0 zd(2)*9.81]'];
 
 % (2) inequailty condition = same direction (very improtant)
-A=[A ;[-ad(1) 0 0;0 0 0; 0 0 0]*Tmat(tm(i),2,n)]; 
+A=[A ;[-zd(1) 0 0;0 0 0; 0 0 0]*Tmat(tm(i),2,n)]; 
 b=[b; zeros(3,1)];
 
 end
 
 %ACCELERATION CONSTRAINT (initial condition)
 % ====================
-d2x0=[1 -1 2]';
+d2x0=[0 0 0]';
 Aeq=[Aeq ; Tmat(t0,2,n)];
 beq=[beq; d2x0];
 
@@ -220,21 +225,26 @@ hold on
 plot3(x0(1),x0(2),x0(3),'bo')
 plot3(xf(1),xf(2),xf(3),'ro')
 plot3(x(1,:), x(2,:), x(3,:))
+axis([-2 2 -2 12 -2 2])
+
+for time=linspace(t0_real+1,tf_real,40)
+
+traj_res=traj(p,time,n,t0_real,tf_real);
+
+quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x),traj_res.d2x(2)/norm(traj_res.d2x),traj_res.d2x(3)/norm(traj_res.d2x),'Color','b','LineWidth',1,'MaxHeadSize',2);
+quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x+[0 0 9.81]),traj_res.d2x(2)/norm(traj_res.d2x+[0 0 9.81]),(traj_res.d2x(3)+9.81)/norm(traj_res.d2x+[0 0 9.81]),'Color','r','LineWidth',1,'MaxHeadSize',2);
 
 
-for time=linspace(t0,tf,20)
-
-traj_res=traj(p,time,n,t0,tf);
-
-quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x),traj_res.d2x(2)/norm(traj_res.d2x),traj_res.d2x(3)/norm(traj_res.d2x),'Color','r','LineWidth',1,'MaxHeadSize',2);
 %quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1),traj_res.d2x(2),traj_res.d2x(3),'Color','r','LineWidth',1,'MaxHeadSize',2);
 end
+
+
 
 figure
 
 for i=1:3
     subplot(3,1,i)
-    plot(tset,x(i,:))
+    plot(tset,d2x(i,:))
 end
 
 

@@ -38,7 +38,7 @@ obs_test.isobs([3 2;2.5 1.5]')
 
 
 %% 3. Bicycle RRT*
-% (1) steering test
+% (1) Steering test
 %  state = (x,y,theta,t) input=(linear_vel, steering angle)
 
 s1=[0 0 0 0]; s2=[ 3 3 pi/4 2];
@@ -64,8 +64,10 @@ for v=vs
     end
 end
 
-%(2) plain simulation - without any obstacle 
-
+%% (2) Plain simulation - without any obstacle 
+nstate=4; % s=[x y theta t] 
+distance_measure='bicycle';
+g=PGraph
         
         
         

@@ -106,6 +106,7 @@ classdef PGraph < matlab.mixin.Copyable
     properties (SetAccess=private, GetAccess=public)
         vertexlist      % vertex coordinates, columnwise, vertex number is the column number
         edgelist        % 2xNe matrix, each column is vertex index of edge start and end
+        inputlist        % (# of input)xNe 
         edgelen         % length (cost) of this edge
         
         labels          % label of each vertex (1xN)
@@ -350,6 +351,7 @@ classdef PGraph < matlab.mixin.Copyable
                 g.edgelen = [g.edgelen d];
             end
             g.ncvalid = false;  % mark connectivity as suspect
+            
 
 
 
@@ -1533,7 +1535,8 @@ classdef PGraph < matlab.mixin.Copyable
                         d(4:end,:)=(x1(4:end)-x2(4:end,:))*g.dweight(2);
                         d=colnorm(d);
 
-                        
+                    case 'bicycle'
+                        d=K_d*norm(x1(1:3)-x2(1:3))^2+K_t*(x1(4)-x2(4))^2;
                         
                     otherwise
                         error('unknown distance measure', g.measure);

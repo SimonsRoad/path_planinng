@@ -44,8 +44,10 @@ dx = [];
     kp_xy = 0.3/epsilon_bar^2 ; kd_xy = 0.6/epsilon_bar ;
     k1 = diag([kp_xy kp_xy 2]) ; k2 = diag([kd_xy kd_xy 1.5]) ;
 
-    k1 =  20*diag([4, 5 ,6]);
-    k2 = 0.5*diag([4, 4, 6]);
+    % 15 /0.7 were good for acceleration 
+    
+    k1 =  15*diag([4, 4 ,6]);
+    k2 = 0.5*diag([3, 3, 4]);
     A = (-k1*eQ - k2*deQ + (mQ)*(aQd + g*e3));
     normA = norm(A);
     b3c = A/norm(A);
