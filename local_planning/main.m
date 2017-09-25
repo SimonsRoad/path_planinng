@@ -1,4 +1,5 @@
-% minimum snap trajectory generation 
+% minimum snap trajectory generation generation file.
+% this is firstly run before controller
 % 연구노트 66p 
 
 
@@ -10,108 +11,8 @@
 % pij=[rij kji]  
 
 
-%% objective function 
-global m n ts
-n=8; ts=[0 1 2 3 4];
-m=length(ts)-1;
-C=zeros(n,n,m);
 
-
-M=zeros(4*(n+1)*m);
-keyframe=zeros(4,5); % [r_T yaw_T]'*(# of keyframe)
-
-% as an example, keyframes are incremetally ...
-for i=1:5
-    keyframe(:,i)=(i-1)*ones(4,1);
-end
-
-% position objective
-
-for k=1:m
-    for i=4:n
-        for j=4:n
-            if i==4 && j==4
-            C(i,j,k)=i*(i-1)*(i-2)*(i-3)*j*(j-1)*(j-2)*(j-3)*(ts(k+1)-ts(k));
-            else
-            C(i,j,k)=i*(i-1)*(i-2)*(i-3)*j*(j-1)*(j-2)*(j-3)*1/(i+j-8)*(ts(k+1)^(i+j-7)-ts(k)^(i+j-7));
-            end
-        end
-    end
-end
-
-
-for i=1:n
-    for j=1:n
-        Mij=zeros(4*m);
-        for k=1:m
-            Mij(4*k-3:4*k,4*k-3:4*k)=C(i,j,k)*blkdiag(eye(3),0);
-        end
-        M(4*m*(i)+1:4*m*(i+1),4*m*(j)+1:4*m*(j+1))=Mij;    
-    end
-end
-
-Mr=M;
-%%
-% yaw objective
-C=zeros(n,n,m);
-
-for k=1:m
-    for i=2:n
-        for j=2:n
-            if i==2 && j==2
-            C(i,j,k)=i*(i-1)*j*(j-1)*(ts(k+1)-ts(k));
-            else
-            C(i,j,k)=i*(i-1)*j*(j-1)*1/(i+j-4)*(ts(k+1)^(i+j-3)-ts(k)^(i+j-3));
-            end
-        end
-    end
-end
-
-
-for i=1:n
-    for j=1:n
-        Mij=zeros(4*m);
-        for k=1:m
-            Mij(4*k-3:4*k,4*k-3:4*k)=C(i,j,k)*blkdiag(0,eye(3));
-        end
-        M(4*m*(i)+1:4*m*(i+1),4*m*(j)+1:4*m*(j+1))=Mij;    
-
-    end
-end
-
-M_ksi=M;
-
-
-
-
-%% constraint matrix for continuity 
-T=[];
-
-for i=1:n+1 % actually from 0 to n
-    Ti=zeros(4*m);
-    for k=1:m % actually from 0 to m
-        Ti(4*(k-1)+1:4*(k),4*(k-1)+1:4*(k))=ts(k)^(i-1)*eye(4);
-    end
-    k=m+1;
-        Ti(4*(k-1)+1:4*(k),4*(k-2)+1:4*(k-1))=ts(k)^(i-1)*eye(4);
-    T=[T Ti];
-end
-
-%% optimization 
-keyframe=reshape(keyframe,numel(keyframe),1);
-Mobj=Mr+M_ksi;
-bnd_cond=quadprog(Mobj,[],[],[],T,keyframe);
-
-
-%% plot the trajectory 
-
-
-figure
-plot3(keyframe(1,:),keyframe(2,:),keyframe(3,:),'r*')
-hold on 
-axis([0 10 0 10 0 10])
-
-%% new trial % refet p71-P73
+%%  % refer p71-P73
 n=10; % order of polynomial
 % for better condition number of C matrix 
 C=10*rand(3*(n+1),1);
@@ -216,7 +117,7 @@ for time=t0_real:tf_real
     d2x=[d2x traj_res.d2x];
 end
 
-
+%%
 figure
 
 % tmpAspect=daspect();
@@ -226,20 +127,26 @@ hold on
 plot3(x0(1),x0(2),x0(3),'bo')
 plot3(xf(1),xf(2),xf(3),'ro')
 plot3(x(1,:), x(2,:), x(3,:))
-
+axis([])
 for time=linspace(t0_real+1,tf_real,40)
 
 traj_res=traj(p,time,n,t0_real,tf_real);
 
 quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x),traj_res.d2x(2)/norm(traj_res.d2x),traj_res.d2x(3)/norm(traj_res.d2x),'Color','b','LineWidth',1,'MaxHeadSize',2);
-quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x+[0 0 9.81]),traj_res.d2x(2)/norm(traj_res.d2x+[0 0 9.81]),(traj_res.d2x(3)+9.81)/norm(traj_res.d2x+[0 0 9.81]),'Color','r','LineWidth',1,'MaxHeadSize',2);
+quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),2*traj_res.d2x(1)/norm(traj_res.d2x+[0 0 9.81]),2*traj_res.d2x(2)/norm(traj_res.d2x+[0 0 9.81]),2*(traj_res.d2x(3)+9.81)/norm(traj_res.d2x+[0 0 9.81]),'Color','r','LineWidth',1.5,'MaxHeadSize',2);
 
 
 %quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1),traj_res.d2x(2),traj_res.d2x(3),'Color','r','LineWidth',1,'MaxHeadSize',2);
 end
 
+text(x0(1),x0(2)+1,x0(3),'x0');
+text(xf(1)+1,xf(2),xf(3),'xf');
 
+str = {'x0','xf','$${x} $$','$$ \ddot{x} $$', '$$ {z}_{b}  $$'};
 
+legend(str, 'Interpreter','latex')
+xlabel('x'); ylabel('y'); zlabel('z')
+%%
 figure
 
 for i=1:3
@@ -253,10 +160,23 @@ subplot(2,1,1)
 hold on
 plot(tset,d2x(1,:)./d2x(2,:),'-g');
 plot(tset,zd(1)/zd(2)*ones(1,length(tset)),':r');
+   str = {'$$ \ddot{x}/\ddot{y} $$', '$$ z_{b1}/z_{b2}  $$'};
+    grid on; title(str{1},'Interpreter','latex');
+    legend(str, 'Interpreter','latex')
+    xlabel('time[sec]'); ylabel('ratio');
+
+
 subplot(2,1,2)
+
 hold on
 plot(tset,((d2x(3,:)+9.81)./d2x(1,:)).^-1,'-g');
 plot(tset,zd(1)/zd(3)*ones(1,length(tset)),':r');
+
+   str = {'$$ \ddot{x}/(\ddot{z}+g) $$', '$$ z_{b1}/z_{b3}  $$'};
+    grid on; title(str{1},'Interpreter','latex');
+    legend(str, 'Interpreter','latex')
+    xlabel('time[sec]'); ylabel('ratio');
+
 
 
 

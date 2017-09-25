@@ -1,11 +1,5 @@
 % Geometric control of Quadrotor on SE(3)
-% http://www.math.ucsd.edu/~mleok/pdf/LeLeMc2010_quadrotor.pdf
-% 
-% Hybrid Robotics Lab
-% Carnegie Mellon University
-% Author: vkotaru@andrew.cmu.edu
-% Date: June-8-2016
-% Last Updated: June-8-2016
+% this is controller which should be run after main.m
 
 %% INITIALZING WORKSPACE
 % ======================
@@ -122,17 +116,20 @@ end
 %% attitude plotting 
     figure;
     ind = round(linspace(1, length(t), 1000));
-    ind_trplot=round(linspace(1, length(t), 15));
+    ind_trplot=round(linspace(round(length(t)/1.2), length(t), 7));
     hold on
     % draw the attitude frame 
-    for i=ind_trplot
-        trplot(SE3(reshape(x(i,7:15),3,3),x(i,1:3)))
-    end
-    quiver3(x(i,1),x(i,2),x(i,3),zd(1),zd(2),zd(3),'r')
-    
+    quiver3(x(i,1),x(i,2),x(i,3),5*zd(1),5*zd(2),5*zd(3),'Color','r','LineWidth',2,'MaxHeadSize',2)
+    text(x(i,1)+6*zd(1),x(i,2)+6*zd(2),x(i,3)+6*zd(3),'zb')
+
     plot3(x(ind,1),x(ind,2),x(ind,3),'-g');
     
-    grid on; title('trajectory');legend('traj','traj_d');%axis equal;
+    for i=ind_trplot
+%         trplot(SE3(reshape(x(i,7:15),3,3),x(i,1:3)))\
+        draw_drone2(reshape(x(i,7:15),3,3),x(i,1:3),1,0.4,2)
+    end    
+    hold on
+%     grid on; title('trajectory');legend('traj','traj_d');%axis equal;
     
     xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
     
@@ -144,19 +141,19 @@ end
     figure;
     subplot(2,1,1);
     
-    plot(t(ind),dx(ind,5)./dx(ind,4),'-g',t(ind),zd(2)/zd(1)*ones(1,1000),':r');
-    str = {'$$ \ddot{y}/\ddot{x} $$', '$$ \ddot{y}_{d}/\ddot{x}_{d}  $$'};
+    plot(t(ind),dx(ind,4)./dx(ind,5),'-g',t(ind),zd(1)/zd(2)*ones(1,1000),':r');
+    str = {'$$ \ddot{x}/\ddot{y} $$', '$$ {z}_{b1}/z_{b2}  $$'};
     grid on; title(str{1},'Interpreter','latex');
     legend(str, 'Interpreter','latex')
 
-    xlabel('time');ylabel('d2x [m]');
+    xlabel('time');ylabel('ratio');
     axis([t(ind(1))  t(ind(end)) 0 10 ])
     subplot(2,1,2);
     plot(t(ind),((dx(ind,6)+9.81)./dx(ind,4)),'-g',t(ind),zd(3)/zd(1)*ones(1,1000),':r');
-    str = {'$$ \ddot{z}/\ddot{x} $$', '$$ \ddot{z}_{d}/\ddot{x}_{d}  $$'};
+    str = {'$$ \ddot{x}/(\ddot{z}+g) $$', '$$ {z}_{b1}/z_{b2}  $$'};
 
     grid on; title(str{1},'Interpreter','latex');     legend(str, 'Interpreter','latex')%axis equal;
-    xlabel('time');ylabel('y [m]');
+    xlabel('time');ylabel('ratio');
     
     axis([t(ind(1))  t(ind(end)) 0 10 ])
     
