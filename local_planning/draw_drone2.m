@@ -37,7 +37,7 @@ hold on
 plot3(xyl(1:2,1),xyl(1:2,2),xyl(1:2,3),'LineWidth',w,'Color','k')
 plot3(xyl(3:4,1),xyl(3:4,2),xyl(3:4,3),'LineWidth',w,'Color','k')
 
-quiver3(og(1),og(2),og(3),xyl(2,1)-xyl(1,1),xyl(2,2)-xyl(1,2),xyl(2,3)-xyl(1,3),'r')
+quiver3(og(1),og(2),og(3),xyl(2,1)-xyl(1,1),xyl(2,2)-xyl(1,2),xyl(2,3)-xyl(1,3),'b')
 text(og(1)+xyl(2,1)-xyl(1,1),og(2)+xyl(2,2)-xyl(1,2),og(3)+xyl(2,3)-xyl(1,3),'x')
 
 quiver3(og(1),og(2),og(3),xyl(4,1)-xyl(3,1),xyl(4,2)-xyl(3,2),xyl(4,3)-xyl(3,3),'b')
