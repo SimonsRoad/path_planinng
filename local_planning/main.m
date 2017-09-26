@@ -112,7 +112,7 @@ hold on
 axis([0 10 0 10 0 10])
 
 %% new trial % refet p71-P73
-n=10; % order of polynomial
+n=12; % order of polynomial
 % for better condition number of C matrix 
 C=10*rand(3*(n+1),1);
 
@@ -124,7 +124,7 @@ t0_real=0; tf_real=10; tm_real=[10]; t_cond_real=[t0_real tf_real tm_real];
 % BOUNDARY CONDITION
 %%%%%%%%%%%%%%%
 % x0=zeros(3,1); xf=10*ones(3,1); 
-x0=zeros(3,1); xf=[3 10 2]'; 
+x0=zeros(3,1); xf=[5 15 2]'; 
 
 dx0_real=zeros(3,1);
 
@@ -152,16 +152,23 @@ A=[]; b=[];
 % ===============
 Aeq=[Aeq ;[Tmat(t0,0,n) ; Tmat(tf,0,n)]];
 beq=[beq ;x0;xf];
+
 % VELOCITY CONSTRAINT
 % ================
+% initial condition
 dx0=dx0_real*(tf-t0);
 Aeq=[Aeq ; Tmat(t0,1,n)];
 beq=[beq;dx0];
 
+% final enterance velocity direction
+% vd=[0.2 1 0.2]';
+% Aeq=[Aeq ; [vd(2) -vd(1) 0;0 vd(3) -vd(2)]*Tmat(tf,1,n)];
+% beq=[beq; [0 0]'];
+
 %ACCELERATION CONSTRAINT (direction only)
 % ====================
 zd=[0.2 0.4 0.4]';
-zd=[0.4 0.1 0.4]';
+zd=[0.2 0.1 0.4]';
 
 
 
@@ -186,17 +193,17 @@ beq=[beq; d2x0];
 % 
 % % CORRIDER CONSTRAINT
 % % ================
-% n_seg=5; tlist=linspace(t0,tf,n_seg); delta=1.5;
-% t=(xf-x0)/norm(xf-x0);
-% r=x0;
-% for i=2:n_seg-1
-%    T=Tmat(tlist(i),0,n);
-%    for j=1:3
-%        A=[A;(T(j,:)-t(j)*t'*T)]; b=[b;delta-(t'*r)*t(j)-r(j)];
-%        A=[A;-(T(j,:)-t(j)*t'*T)]; b=[b;delta+(t'*r)*t(j)-r(j)];
-%    end    
-% end
-%     
+n_seg=5; tlist=linspace(t0,tf,n_seg); delta=1.5;
+t=(xf-x0)/norm(xf-x0);
+r=x0;
+for i=2:n_seg-1
+   T=Tmat(tlist(i),0,n);
+   for j=1:3
+       A=[A;(T(j,:)-t(j)*t'*T)]; b=[b;delta-(t'*r)*t(j)-r(j)];
+       A=[A;-(T(j,:)-t(j)*t'*T)]; b=[b;delta+(t'*r)*t(j)-r(j)];
+   end    
+end
+    
 
 % OPIMIZATION
 % =========
