@@ -1,4 +1,5 @@
-% minimum snap trajectory generation 
+% minimum snap trajectory generation generation file.
+% this is firstly run before controller
 % 연구노트 66p 
 
 
@@ -10,12 +11,8 @@
 % pij=[rij kji]  
 
 
-%% objective function 
-global m n ts
-n=8; ts=[0 1 2 3 4];
-m=length(ts)-1;
-C=zeros(n,n,m);
 
+<<<<<<< HEAD
 
 M=zeros(4*(n+1)*m);
 keyframe=zeros(4,5); % [r_T yaw_T]'*(# of keyframe)
@@ -113,6 +110,10 @@ axis([0 10 0 10 0 10])
 
 %% new trial % refet p71-P73
 n=12; % order of polynomial
+=======
+%%  % refer p71-P73
+n=10; % order of polynomial
+>>>>>>> 15b9fe08256a7f05110b1c2e05a5d3ff85d91a84
 % for better condition number of C matrix 
 C=10*rand(3*(n+1),1);
 
@@ -223,7 +224,7 @@ for time=t0_real:tf_real
     d2x=[d2x traj_res.d2x];
 end
 
-
+%%
 figure
 
 % tmpAspect=daspect();
@@ -233,20 +234,26 @@ hold on
 plot3(x0(1),x0(2),x0(3),'bo')
 plot3(xf(1),xf(2),xf(3),'ro')
 plot3(x(1,:), x(2,:), x(3,:))
-
+axis([])
 for time=linspace(t0_real+1,tf_real,40)
 
 traj_res=traj(p,time,n,t0_real,tf_real);
 
 quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x),traj_res.d2x(2)/norm(traj_res.d2x),traj_res.d2x(3)/norm(traj_res.d2x),'Color','b','LineWidth',1,'MaxHeadSize',2);
-quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x+[0 0 9.81]),traj_res.d2x(2)/norm(traj_res.d2x+[0 0 9.81]),(traj_res.d2x(3)+9.81)/norm(traj_res.d2x+[0 0 9.81]),'Color','r','LineWidth',1,'MaxHeadSize',2);
+quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),2*traj_res.d2x(1)/norm(traj_res.d2x+[0 0 9.81]),2*traj_res.d2x(2)/norm(traj_res.d2x+[0 0 9.81]),2*(traj_res.d2x(3)+9.81)/norm(traj_res.d2x+[0 0 9.81]),'Color','r','LineWidth',1.5,'MaxHeadSize',2);
 
 
 %quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1),traj_res.d2x(2),traj_res.d2x(3),'Color','r','LineWidth',1,'MaxHeadSize',2);
 end
 
+text(x0(1),x0(2)+1,x0(3),'x0');
+text(xf(1)+1,xf(2),xf(3),'xf');
 
+str = {'x0','xf','$${x} $$','$$ \ddot{x} $$', '$$ {z}_{b}  $$'};
 
+legend(str, 'Interpreter','latex')
+xlabel('x'); ylabel('y'); zlabel('z')
+%%
 figure
 
 for i=1:3
@@ -260,10 +267,23 @@ subplot(2,1,1)
 hold on
 plot(tset,d2x(1,:)./d2x(2,:),'-g');
 plot(tset,zd(1)/zd(2)*ones(1,length(tset)),':r');
+   str = {'$$ \ddot{x}/\ddot{y} $$', '$$ z_{b1}/z_{b2}  $$'};
+    grid on; title(str{1},'Interpreter','latex');
+    legend(str, 'Interpreter','latex')
+    xlabel('time[sec]'); ylabel('ratio');
+
+
 subplot(2,1,2)
+
 hold on
 plot(tset,((d2x(3,:)+9.81)./d2x(1,:)).^-1,'-g');
 plot(tset,zd(1)/zd(3)*ones(1,length(tset)),':r');
+
+   str = {'$$ \ddot{x}/(\ddot{z}+g) $$', '$$ z_{b1}/z_{b3}  $$'};
+    grid on; title(str{1},'Interpreter','latex');
+    legend(str, 'Interpreter','latex')
+    xlabel('time[sec]'); ylabel('ratio');
+
 
 
 
