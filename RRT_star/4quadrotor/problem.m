@@ -56,7 +56,7 @@ classdef problem
             
             for i=1:4
                 plot3([qs(1,i) corners(1,i)],[qs(2,i) corners(2,i)],[qs(3,i) corners(3,i)],'r','LineWidth',1);        
-                draw_drone2(eye(3),qs(:,i),problem.rq,0.5,2);
+%                 draw_drone2(eye(3),qs(:,i),problem.rq,0.5,2);
             end
             
             

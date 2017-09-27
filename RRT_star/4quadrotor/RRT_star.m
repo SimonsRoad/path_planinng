@@ -4,7 +4,7 @@ function g=RRT_star(prob,g,N)
 % N=number of needed nodes 
 
 while g.n<N
-    x_rand=sample(prob);
+    x_rand=prob.sample;
 %     plot3(x_rand(1),x_rand(2),x_rand(3),'b*')
     [v_nearest]=g.closest(x_rand);
     x_nearest=g.vertexlist(:,v_nearest);
