@@ -29,6 +29,10 @@ odeopts = odeset('RelTol', 1e-9, 'AbsTol', 1e-10) ;
 tspan=[0 1];
 
 [t, x] = ode45(@CoopQuad2Dynmaics, tspan, x0, odeopts,data) ;
+
+
+
+
 x1=x(end,:)';
 [xl,vl,Rl,wl]=x2s(x1);
 PlotState(x(end,:)',u0,data);
@@ -67,6 +71,8 @@ end
 
 Cmin=1e+5; % intialized cost 
 umin=zeros(16,1);
+count=0;
+tot=(NQOption*length(Tset))^4;
 for i1=1:NQOption*length(Tset)
     for i2=1:NQOption*length(Tset)
         for i3=1:NQOption*length(Tset)
@@ -79,6 +85,8 @@ for i1=1:NQOption*length(Tset)
                 u(13:end)=[uset{1}.T(i1) uset{2}.T(i2) uset{3}.T(i3) uset{4}.T(i4)];
                 data.u=u;
                 [t, x] = ode45(@CoopQuad2Dynmaics, tspan, x0, odeopts,data) ;
+                count=count+1;
+                fprintf('current: %d / %d\n',count,tot)
                 xend=x(end,:)';
                 C=cost_metric(x0,xend); 
                 if C<Cmin
