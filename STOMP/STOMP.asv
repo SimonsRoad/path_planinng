@@ -1,0 +1,20 @@
+%% sensor reading
+
+
+real_map=robotics.OccupancyGrid(10,10,20);
+
+
+
+obstacle=
+
+
+
+pose = [5,5,0];
+ranges = 3*ones(100, 1);
+angles = linspace(-pi/2, pi/2, 100);
+maxrange = 20;
+insertRay(map,pose,ranges,angles,maxrange);
+show(map)
+
+
+
