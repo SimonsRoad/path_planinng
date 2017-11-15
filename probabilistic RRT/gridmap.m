@@ -15,7 +15,7 @@ classdef gridmap<handle
             obj.dy=dy;
             obj.Nx=Nx;
             obj.Ny=Ny;
-            obj.map=ones(Nx,Ny)*0.5;
+            obj.map=ones(Nx,Ny)*0;
         end
         
         function xy=cell2xy(gridmap,i,j)
@@ -32,7 +32,11 @@ classdef gridmap<handle
             
         function mapplot(gridmap)
             colormap(jet)
-            imagesc((flipud(gridmap.get_map')))           
+            
+            imagesc(((gridmap.get_map')),'XData',[gridmap.origin(1) gridmap.origin(1)+gridmap.dx*...
+                gridmap.Nx],'YData',[ gridmap.origin(2) gridmap.origin(2)+gridmap.dy*gridmap.Ny ])     
+            xlabel('x')
+            ylabel('y')
         end
         
         function obstacle_assign(gridmap,obs_origin,obs_scale,value)
@@ -72,9 +76,9 @@ classdef gridmap<handle
         
         function [isobs,p]=colision(gridmap,x)
             cut_prob=0.9;
-            ij=cell2xy(x);
+            ij=gridmap.xy2cell(x(1),x(2));
             isobs=false;
-            p=gridmap(ij(1),ij(2));
+            p=gridmap.map(ij(1),ij(2));
             if p>cut_prob
                 isobs=true;
             end

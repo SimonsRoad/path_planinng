@@ -1,4 +1,4 @@
-function g=RRT_self(gridmap,g,N,xf)
+function g=pRRT(gridmap,g,N,xf)
 % prob = structure that contains graph 
 % g=graph
 % N=number of needed nodes 
@@ -7,9 +7,10 @@ function g=RRT_self(gridmap,g,N,xf)
 while g.n<N
     
     if rand<0.03
-        x_rand=[xf,1];
+        x_rand=xf;
     else
-        [x_rand,p_rand,~]=gridmap.sample;
+        [p_rand,x_rand,~]=gridmap.sample;
+        x_rand=[x_rand p_rand]';
     end
 %     plot3(x_rand(1),x_rand(2),x_rand(3),'b*')
 
@@ -17,7 +18,7 @@ while g.n<N
     x_nearest=g.vertexlist(:,v_nearest);
     x_new=steer(x_nearest,x_rand);
     % check the probability 
-    [isobs,p]=collision(gridmap,x_new(1:2));
+    [isobs,p]=gridmap.colision(x_new(1:2));
     x_new(3)=p;
     
 %     plot3(x_new(1),x_new(2),x_new(3),'bo')

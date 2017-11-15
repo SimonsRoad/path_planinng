@@ -346,9 +346,10 @@ classdef PGraph < matlab.mixin.Copyable
                 g.edgelist = [g.edgelist [v1(i); v2(i)]];
                 e = [e numcols(g.edgelist)];
                 if (nargin < 4) || isempty(d)
-                    d = g.distance(v1(i), v2(i));
+                    d1 = g.distance(v1(i), v2(i),'distance');
+                    d2 = g.distance(v1(i), v2(i),'probability');
                 end
-                g.edgelen = [g.edgelen d];
+                g.edgelen = [g.edgelen [d1 d2]'];
             end
             g.ncvalid = false;  % mark connectivity as suspect
             
@@ -705,10 +706,7 @@ classdef PGraph < matlab.mixin.Copyable
             d = g.distance_metric(p(:), g.vertexlist,metric);
             [mn,c] = min(d);
             
-            if nargin > 2 && mn > tol
-                c = []; dn = [];
-            end
-            
+
             if nargout > 1
                 dn = mn;
             end
@@ -988,7 +986,7 @@ classdef PGraph < matlab.mixin.Copyable
                             end
                         end
                         if ~isempty(coords)
-                            if opt.dims >= 3
+                            if opt.dims >= 4
                                 plot3(coords(1,:), coords(2,:), coords(3,:), 'Color', color, 'LineWidth', opt.EdgeWidth);
                             else
                                 plot(coords(:,1), coords(:,2), 'Color', color, 'LineWidth', opt.EdgeWidth);
@@ -1008,7 +1006,7 @@ classdef PGraph < matlab.mixin.Copyable
                             continue;
                         end
                         p = g.coord(v);
-                        if opt.dims >= 3
+                        if opt.dims >= 4
                             plot3(p(1), p(2), p(3), args{:});
                         else
                             plot(p(1), p(2), args{:});
@@ -1039,7 +1037,7 @@ classdef PGraph < matlab.mixin.Copyable
 %                        fprintf('egde was %f',e) 
                     end
                     
-                    if opt.dims >= 3
+                    if opt.dims >= 4
                         plot3([v1(1) v2(1)], [v1(2) v2(2)], [v1(3) v2(3)], ...
                             'Color', opt.EdgeColor, 'LineWidth', opt.EdgeWidth);
                     else
@@ -1060,7 +1058,7 @@ classdef PGraph < matlab.mixin.Copyable
                         'MarkerFaceColor', opt.NodeFaceColor, ...
                         'MarkerSize', opt.NodeSize, ...
                         'MarkerEdgeColor', opt.NodeEdgeColor };
-                    if opt.dims >= 3
+                    if opt.dims >= 4
                         plot3(g.vertexlist(1,i), g.vertexlist(2,i), g.vertexlist(3,i), args{:});
                     else
                         plot(g.vertexlist(1,i), g.vertexlist(2,i), args{:});
@@ -1553,7 +1551,7 @@ classdef PGraph < matlab.mixin.Copyable
                     case 'bicycle'
                         d=K_d*norm(x1(1:3)-x2(1:3))^2+K_t*(x1(4)-x2(4))^2;
                     case 'distance'
-                        d=norm(x1(1:2)-x2(1:2));
+                         d = colnorm( bsxfun(@minus, x1(1:2,:), x2(1:2,:)) );
                     case 'probability '
                         d=log(1-x2(3));
                     otherwise
