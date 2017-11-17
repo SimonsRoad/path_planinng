@@ -2,8 +2,8 @@
 global real_map 
 real_map=robotics.OccupancyGrid(10,10,20);
 
-obs_x=[3 7]; dx=[0.3 0.5];
-obs_y=[5 9]; dy=[2 1];
+obs_x=[3 7 8]; dx=[0.3 0.5 2];
+obs_y=[5 9 6]; dy=[2 1 0.5];
 Nx=200; Ny=200;
 Nobs=length(obs_x);
 
@@ -18,41 +18,106 @@ figure
 real_map.show()
 
 %% occu_map 
-x0=[1 1]';
+x0=[1 1.2]';
 
 pose = [x0' 0];
-maxrange = 10;
-Nray=500;
+maxrange = 5;
+Nray=1000;
 
 angle_min=-pi/2+pi/4;
 angle_max=pi/2+pi/4;
-
-rayinsertion(pose,angle_min,angle_max)
-
 global occu_map 
-
-% occumap contruction 
 occu_map=robotics.OccupancyGrid(10,10,20);
+% ray insertion using real_map and occu_map
+
+rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
 mat=occu_map.occupancyMatrix;
+
 occu_map.show()
 hold on
-
 
 %% initial  planning 
 N_init=50; % initial time step 
 dt=0.1; 
-K=10; % noisy trajectories 
+K=20; % noisy trajectories 
 max_iter=10; 
 verbose=true;
-tol=3;
+tol=0.2;
+x0=[1 1]'; xN=[9 9]';
 
-[X,Y,Xs,Ys]=STOMP_fun(X0,Y0,K,dt,max_iter,tol,verbose);
+plot(x0(1),x0(2),'c*')
+hold on 
+plot(xN(1),xN(2),'r*')
+X0=linspace(x0(1),xN(1),N_init); Y0=linspace(x0(2),xN(2),N_init);
+Xs=[]; Ys=[];
+N_guess=4;
+
+[X,Y,X_history,Ys_history,cost]=STOMP_fun(X0,Y0,K,dt,max_iter,tol,verbose);
+Xs=X; Ys=Y; costs=cost;
+% mutiple initial guess for global search 
+
+A=diag(-2*ones(1,N_init))+diag(ones(1,N_init-1),1)+diag(ones(1,N_init-1),-1);
+A=A/(dt^2);
+R=A'*A;
+Rinv=inv(A'*A);
+
+xc=(x0+xN)/2;
+v=(xN-x0); v=[v(2) -v(1)]/norm(v);
+pseudo_t=[0 0.5 1];
+d=[1/4 1/2 -1/4 -1/2];
+
+for i=1:length(d)
+    xm=xc+v*d(i);
+    px=polyfit([xc(1) xm(1) xN(1)],pseudo_t,2);
+    py=polyfit([xc(2) xm(2) xN(2)],pseudo_t,2);
+    X0=polyval(px,linspace(0,1,N_init));
+    Y0=polyval(py,linspace(0,1,N_init));
+    plot(X0,Y0,'b-')
+end
+
+
+%%
+
+for i=1:N_guess
+    fprintf('current guess: %d ----------------------\n',i);
+    % intial guess from random 
+%     X0_perturbed=X0+mvnrnd(zeros(1,N_init),10*Rinv);
+%     Y0_perturbed=Y0+mvnrnd(zeros(1,N_init),10*Rinv);
 
 
 
+    [X_perturbed,Y_perturbed,X_history,Ys_history,cost]=STOMP_fun(X0_perturbed,Y0_perturbed,K,dt,max_iter,tol,verbose);
+    Xs=[Xs;X_perturbed]; Ys=[Ys;Y_perturbed]; costs=[costs cost];
+end
 
+for i=1:N_guess
+    plot(Xs(i,:),Ys(i,:),'b-')
+end
+%% move 
 
+n_move=10;
+n_current=1;
 
+for i=1:n_move
+    pose=[X(n_current+i) Y(n_current+i) 0];
+    rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
+    occu_map.show()
+    % plot path...
+    plot(X,Y,'b-')
+    plot(pose(1),pose(2),'c*')
+    plot(xN(1),xN(2),'r*')
+    
+    pause(1e-1)
+end
 
+n_current=n_current+n_move;
 
+%% replanning 
+
+[X,Y,X_history,Ys_history]=STOMP_fun(X(n_current:end),Y(n_current:end),K,dt,max_iter,tol,verbose);
+
+% plot path...
+plot(X,Y,'b-')
+plot(X(1),Y(1),'c*')
+plot(xN(1),xN(2),'r*')
 

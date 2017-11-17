@@ -163,7 +163,6 @@ end
 plot(X,Y,'b-')
 
 
-
 X=X(N_current+N_move:N); 
 Y=Y(N_current+N_move:N);
 

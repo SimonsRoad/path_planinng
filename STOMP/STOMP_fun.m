@@ -1,6 +1,6 @@
 %% STOMP function 
 % written by JBS 2017 / 11/ 16 
-function [X,Y,Xs,Ys]=STOMP_fun(X0,Y0,K,dt,max_iter,tol,verbose)
+function [X,Y,Xs,Ys,cost_old]=STOMP_fun(X0,Y0,K,dt,max_iter,tol,verbose)
 
 % X,Y: trajectory 
 % Xs, Ys: trajectory history 
@@ -31,7 +31,7 @@ cost_old=cost_occupancy(X,Y,occu_map);
 
 
 
-iter_count=1;
+iter_count=0;
 cost_diff=1000;
 
 if verbose
@@ -92,11 +92,13 @@ cost_new=cost_occupancy(X,Y,occu_map);
 cost_diff=abs(cost_new-cost_old);
 cost_old=cost_new;
 
+iter_count=iter_count+1;
+
+
 if verbose
     fprintf('current iteration step: %d / cost : %f \n',iter_count,cost_old);
 end
 
-iter_count=iter_count+1;
 
 end
 
