@@ -49,6 +49,9 @@ plot(x0(1),x0(2),'c*')
 hold on 
 plot(xN(1),xN(2),'r*')
 X0=linspace(x0(1),xN(1),N_init); Y0=linspace(x0(2),xN(2),N_init);
+plot(X0,Y0,'b-')
+X0s=X0; Y0s=Y0;
+
 Xs=[]; Ys=[];
 N_guess=4;
 
@@ -63,28 +66,28 @@ Rinv=inv(A'*A);
 
 xc=(x0+xN)/2;
 v=(xN-x0); v=[v(2) -v(1)]/norm(v);
-pseudo_t=[0 0.5 1];
+pseudo_t=[0 0.5 1]; % this is for polyfit dummy input variable 
+
 d=[1/4 1/2 -1/4 -1/2];
 
 for i=1:length(d)
-    xm=xc+v*d(i);
-    px=polyfit([xc(1) xm(1) xN(1)],pseudo_t,2);
-    py=polyfit([xc(2) xm(2) xN(2)],pseudo_t,2);
+    xm=xc+v'*d(i)*norm(xN-x0);
+    
+    px=polyfit(pseudo_t,[x0(1) xm(1) xN(1)],2);
+    py=polyfit(pseudo_t,[x0(2) xm(2) xN(2)],2);
     X0=polyval(px,linspace(0,1,N_init));
     Y0=polyval(py,linspace(0,1,N_init));
     plot(X0,Y0,'b-')
+    X0s=[X0s; X0]; Y0s=[Y0s ;Y0];
 end
-
 
 %%
 
-for i=1:N_guess
+for i=1:N_guess+1
     fprintf('current guess: %d ----------------------\n',i);
     % intial guess from random 
 %     X0_perturbed=X0+mvnrnd(zeros(1,N_init),10*Rinv);
 %     Y0_perturbed=Y0+mvnrnd(zeros(1,N_init),10*Rinv);
-
-
 
     [X_perturbed,Y_perturbed,X_history,Ys_history,cost]=STOMP_fun(X0_perturbed,Y0_perturbed,K,dt,max_iter,tol,verbose);
     Xs=[Xs;X_perturbed]; Ys=[Ys;Y_perturbed]; costs=[costs cost];
