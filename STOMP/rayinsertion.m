@@ -10,13 +10,15 @@ ranges=maxrange*ones(1,Nray);
 for i=1:Nray
     intPnt=real_map.rayIntersection(pose,angles(i),maxrange);
     if ~isnan(intPnt(1)) % if hits any obstacle
-        
         ranges(i)=norm(pose(1:2)-intPnt);
     end
     
 end
 
-occu_map.insertRay(pose,ranges,angles,maxrange,[0.3 1])
+
+startpt=pose(1:2)
+
+occu_map.insertRay(pose,ranges,angles,maxrange,[0.1 1])
 
 
 

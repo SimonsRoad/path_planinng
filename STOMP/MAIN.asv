@@ -45,11 +45,11 @@ verbose=true;
 tol=0.2;
 x0=[1 1]'; xN=[9 9]';
 
-plot(x0(1),x0(2),'c*')
-hold on 
-plot(xN(1),xN(2),'r*')
+% plot(x0(1),x0(2),'c*')
+% hold on 
+% plot(xN(1),xN(2),'r*')
 X0=linspace(x0(1),xN(1),N_init); Y0=linspace(x0(2),xN(2),N_init);
-plot(X0,Y0,'b-')
+% plot(X0,Y0,'b-')
 X0s=X0; Y0s=Y0;
 
 N_guess=5;
@@ -75,9 +75,9 @@ end
 %%
 
 % occu_map.show()
-% plot(x0(1),x0(2),'c*')
-% plot(xN(1),xN(2),'r*')
-% hold on 
+plot(x0(1),x0(2),'c*')
+plot(xN(1),xN(2),'r*')
+hold on 
 Xs=[]; Ys=[]; costs=[];
 for i=1:N_guess
     fprintf('current guess: %d ----------------------\n',i);
@@ -90,28 +90,33 @@ end
 
 [~,min_idx]=min(costs);
 X=Xs(min_idx,:); Y=Ys(min_idx,:);
+figure
 %%
 
 n_move=10;
 n_current=1;
 
-figure
+%%
+
 for i=1:n_move
-    pose=[X(n_current+i) Y(n_current+i) 0];
+    pose=[X(n_current+i) Y(n_current+i) atan];
     % occupancy map update 
     rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
     % re - evaluation
     cost=cost_occupancy(X(n_current+i:end),Y(n_current+i:end),occu_map);
     if cost>1000
         disp('obstacle encountered')
+        pose(3)=pose(3)-pi/8;        
     end
+    
+    
+    
     occu_map.show()
     hold on
     % plot path...
     plot(X,Y,'b-')
     plot(pose(1),pose(2),'c*')
     plot(xN(1),xN(2),'r*')
-    
     pause(1e-1)
 end
 
@@ -126,4 +131,5 @@ X0=X(n_current:end); Y0=Y(n_current:end);
 plot(X,Y,'b-')
 plot(X(1),Y(1),'c*')
 plot(xN(1),xN(2),'r*')
+
 

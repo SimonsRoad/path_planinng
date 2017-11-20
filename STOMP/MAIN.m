@@ -20,12 +20,12 @@ real_map.show()
 %% occu_map 
 x0=[1 1.2]';
 
-pose = [x0' 0];
+pose = [x0' pi/4.5];
 maxrange = 5;
-Nray=1000;
+Nray=100;
 
-angle_min=-pi/2+pi/4;
-angle_max=pi/2+pi/4;
+angle_min=-pi/8;
+angle_max=pi/8;
 global occu_map 
 occu_map=robotics.OccupancyGrid(10,10,20);
 % ray insertion using real_map and occu_map
@@ -99,21 +99,22 @@ n_current=1;
 %%
 
 for i=1:n_move
-    pose=[X(n_current+i) Y(n_current+i) 0];
+    pose=[X(n_current+i) Y(n_current+i) atan2(Y(n_current+i)-Y(n_current+i-1),X(n_current+i),X(n_current+i-1))];
     % occupancy map update 
     rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
     % re - evaluation
-    cost=cost_occupancy(X(n_current+i:end),Y(n_current+i:end),occu_map);
     if cost>1000
         disp('obstacle encountered')
     end
+    
+    cost=cost_occupancy(X(n_current+i:end),Y(n_current+i:end),occu_map);
+
     occu_map.show()
     hold on
     % plot path...
     plot(X,Y,'b-')
     plot(pose(1),pose(2),'c*')
     plot(xN(1),xN(2),'r*')
-    
     pause(1e-1)
 end
 
@@ -128,4 +129,5 @@ X0=X(n_current:end); Y0=Y(n_current:end);
 plot(X,Y,'b-')
 plot(X(1),Y(1),'c*')
 plot(xN(1),xN(2),'r*')
+
 
