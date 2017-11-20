@@ -10,15 +10,13 @@ function [res,occval]=cost_occupancy(xs,ys,occu_map)
 
         occval(occval<0.3)=0;
         how_many_cross=sum(occval>0.6);
-        cost1=5*traj_length(xs,ys); cost2=sum(occval.^3); cost3=1000*how_many_cross;
-        res=cost1+cost2+cost3;
+        cost2=sum(occval.^3); cost3=1000*how_many_cross;
+        res=cost2+cost3;
 %         fprintf('trajectory cost : %f / uncertainty cost : %f / obstacle cost: %f \n',cost1,cost2,cost3);
    else
         occval=[];
         res=traj_length(xs,ys)^2+1000;  % path out of range
    end
-   
-   
    
    
 end

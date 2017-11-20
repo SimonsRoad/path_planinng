@@ -38,7 +38,7 @@ hold on
 
 %% initial  planning 
 N_init=50; % initial time step 
-dt=0.1; 
+dt=0.2; 
 K=20; % noisy trajectories 
 max_iter=10; 
 verbose=true;
@@ -52,18 +52,10 @@ X0=linspace(x0(1),xN(1),N_init); Y0=linspace(x0(2),xN(2),N_init);
 plot(X0,Y0,'b-')
 X0s=X0; Y0s=Y0;
 
-Xs=[]; Ys=[];
-N_guess=4;
+N_guess=5;
 
-[X,Y,X_history,Ys_history,cost]=STOMP_fun(X0,Y0,K,dt,max_iter,tol,verbose);
-Xs=X; Ys=Y; costs=cost;
 % mutiple initial guess for global search 
-
-A=diag(-2*ones(1,N_init))+diag(ones(1,N_init-1),1)+diag(ones(1,N_init-1),-1);
-A=A/(dt^2);
-R=A'*A;
-Rinv=inv(A'*A);
-
+%%
 xc=(x0+xN)/2;
 v=(xN-x0); v=[v(2) -v(1)]/norm(v);
 pseudo_t=[0 0.5 1]; % this is for polyfit dummy input variable 
@@ -77,30 +69,33 @@ for i=1:length(d)
     py=polyfit(pseudo_t,[x0(2) xm(2) xN(2)],2);
     X0=polyval(px,linspace(0,1,N_init));
     Y0=polyval(py,linspace(0,1,N_init));
-    plot(X0,Y0,'b-')
     X0s=[X0s; X0]; Y0s=[Y0s ;Y0];
 end
 
 %%
 
-for i=1:N_guess+1
-    fprintf('current guess: %d ----------------------\n',i);
-    % intial guess from random 
-%     X0_perturbed=X0+mvnrnd(zeros(1,N_init),10*Rinv);
-%     Y0_perturbed=Y0+mvnrnd(zeros(1,N_init),10*Rinv);
-
-    [X_perturbed,Y_perturbed,X_history,Ys_history,cost]=STOMP_fun(X0_perturbed,Y0_perturbed,K,dt,max_iter,tol,verbose);
-    Xs=[Xs;X_perturbed]; Ys=[Ys;Y_perturbed]; costs=[costs cost];
-end
-
+occu_map.show()
+plot(x0(1),x0(2),'c*')
+plot(xN(1),xN(2),'r*')
+hold on 
+Xs=[]; Ys=[]; costs=[];
 for i=1:N_guess
-    plot(Xs(i,:),Ys(i,:),'b-')
+    fprintf('current guess: %d ----------------------\n',i);
+    [X_perturbed,Y_perturbed,X_history,Ys_history,cost]=STOMP_fun(X0s(i,:),Y0s(i,:),K,dt,100,0.1,verbose);
+    Xs=[Xs;X_perturbed]; Ys=[Ys;Y_perturbed]; costs=[costs cost];
+    plot(X_perturbed,Y_perturbed,'r-')
 end
+
 %% move 
+
+[~,min_idx]=min(costs);
+X=Xs(min_idx,:); Y=Ys(min_idx,:);
+%%
 
 n_move=10;
 n_current=1;
 
+figure
 for i=1:n_move
     pose=[X(n_current+i) Y(n_current+i) 0];
     rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
@@ -115,9 +110,10 @@ end
 
 n_current=n_current+n_move;
 
-%% replanning 
 
-[X,Y,X_history,Ys_history]=STOMP_fun(X(n_current:end),Y(n_current:end),K,dt,max_iter,tol,verbose);
+%% replanning 
+X0=X(n_current:end); Y0=Y(n_current:end);
+[X,Y,X_history,Ys_history]=STOMP_fun(X0,Y0,K,dt,100,tol,verbose);
 
 % plot path...
 plot(X,Y,'b-')
