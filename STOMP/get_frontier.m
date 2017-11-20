@@ -1,5 +1,5 @@
 function [frontier_idx,frontier_xy]=get_frontier(occu_map,center,rad)
-    Nray=500;
+    Nray=50;
     angles=linspace(0,2*pi,Nray);
     p_free=0.2;
     p_unknown_upper=0.7;
