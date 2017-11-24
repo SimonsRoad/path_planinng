@@ -25,10 +25,10 @@ XXX=data.X;
 
 epsilon=0.5;
 MinPts=10;
-IDX=DBSCAN(XXX,epsilon,MinPts);
+IDX=DBSCAN(frontiers,epsilon,MinPts);
 
 
 %% Plot Results
 
-PlotClusterinResult(X, IDX);
+PlotClusterinResult(frontiers, IDX);
 title(['DBSCAN Clustering (\epsilon = ' num2str(epsilon) ', MinPts = ' num2str(MinPts) ')']);

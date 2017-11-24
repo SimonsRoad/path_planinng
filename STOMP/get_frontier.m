@@ -1,55 +1,88 @@
-function [frontier_idx,frontier_xy]=get_frontier(occu_map,center,rad)
-    Nray=50;
-    angles=linspace(0,2*pi,Nray);
-    p_free=0.2;
-    p_unknown_upper=0.7;
-    p_unknown_lower=0.4;
-    Nx=occu_map.GridSize(1);
-    Ny=occu_map.GridSize(2);
+function frontier_xy_near=get_frontier(occu_map,obs_center,obs_rad)
+
+% occu_map : occupancy map class
+% obs_center : center of observation
+% obs_rad : radius of observation 
+
+
+frontier_occu_map=occu_map.occupancyMatrix;
+frontier_occu_map(frontier_occu_map<0.2)=0;
+loc_idx1=frontier_occu_map>=0.2;
+loc_idx2=frontier_occu_map<0.7;
+loc_idx=logical (loc_idx1 .* loc_idx2);
+frontier_occu_map(loc_idx)=0.5;
+frontier_occu_map(frontier_occu_map>0.7)=2;
+
+pad=zeros(occu_map.GridSize(1)+2,occu_map.GridSize(2)+2);
+mask=pad;
+mask(2:end-1,2:end-1)=frontier_occu_map;
+
+conv1=pad;
+conv1(1:end-2,2:end-1)=frontier_occu_map;
+
+res=abs(mask-conv1);
+[row,col]=find(res==0.5);
+
+frontier_idx=[row col];
+
+
+conv1=pad;
+conv1(2:end-1,1:end-2)=frontier_occu_map;
+
+res=abs(mask-conv1);
+[row,col]=find(res==0.5);
+
+frontier_idx=[frontier_idx;[row col]];
+
+conv1=pad;
+conv1(3:end,2:end-1)=frontier_occu_map;
+
+res=abs(mask-conv1);
+[row,col]=find(res==0.5);
+
+frontier_idx=[frontier_idx;[row col]];
+
+
+conv1=pad;
+conv1(2:end-1,3:end)=frontier_occu_map;
+
+res=abs(mask-conv1);
+[row,col]=find(res==0.5);
+
+frontier_idx=[frontier_idx;[row col]];
+
+
+erase_idx=[];
+
+for i=1:length(frontier_idx)
     
-    frontier_idx=[];
-    
-    for i=1:Nray
-        [~,midpoints]=occu_map.raycast([center 0],rad,angles(i));
-        for j=1:length(midpoints)
-            
-            is_frontier=false;
-            ix=midpoints(j,1); iy=midpoints(j,2);
-            if occu_map.getOccupancy([ix iy],'grid')<p_free % if it is free space , let's check if it is frontier actually 
-                
-                if ix-1>0
-                    is_frontier=is_frontier || (p_unknown_lower<occu_map.getOccupancy([ix-1 iy],'grid') && p_unknown_upper>occu_map.getOccupancy([ix-1 iy],'grid'));
-                end
-            
-                
-                if iy-1>0
-                    is_frontier=is_frontier || (p_unknown_lower<occu_map.getOccupancy([ix iy-1],'grid') && p_unknown_upper>occu_map.getOccupancy([ix iy-1],'grid'));
-                end
-                
-                
-                if ix+1<=Nx
-                    is_frontier=is_frontier || (p_unknown_lower<occu_map.getOccupancy([ix+1 iy],'grid') && p_unknown_upper>occu_map.getOccupancy([ix+1 iy],'grid'));
-                end
-                               
-                
-                if iy+1<=Ny
-                    is_frontier=is_frontier || (p_unknown_lower<occu_map.getOccupancy([ix iy+1],'grid') && p_unknown_upper>occu_map.getOccupancy([ix iy+1],'grid'));
-                end
-                
-            end
-            
-            if is_frontier
-               frontier_idx=[frontier_idx; ix iy]; 
-            end
-            
-            
-        end
-        
+    if (sum(frontier_idx(i,1)==[1 2 occu_map.GridSize(1)+1 occu_map.GridSize(1)+2])>0) || (sum(frontier_idx(i,2)==[1 2 occu_map.GridSize(2)+1 occu_map.GridSize(2)+2])>0) 
+        erase_idx=[erase_idx i];
     end
-
     
-    frontier_xy=occu_map.grid2world(frontier_idx);
-            
+end
 
+
+frontier_idx(erase_idx,:)=[];
+frontier_idx=frontier_idx-ones(length(frontier_idx),2);
+
+
+res=zeros(200);
+for i=1:length(frontier_idx)
+    res(frontier_idx(i,1),frontier_idx(i,2))=1;
+end
+
+frontier_xy=occu_map.grid2world(frontier_idx);
+
+% so far, we obtained all the frontier cells in the map
+% now let's select the cells around an observation center and radius
+
+dists=sqrt(sum((frontier_xy-obs_center).^2,2));
+frontier_near_idx=(dists<obs_rad);
+
+frontier_xy_near=frontier_xy(frontier_near_idx,:);
 
 end
+
+
+

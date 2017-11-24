@@ -39,15 +39,23 @@ if verbose
 end
 
 
-while (iter_count<max_iter) && cost_diff>tol 
+
+while ((iter_count<max_iter) && cost_diff>tol) || (cost_old>1000)
 %% k noisy trajectories generation
+
+% for stuck situation in local minima 
+if cost_old>1000
+    var_correction=3;
+else
+    var_correction=1;
+end
 
 Xks=repmat(X,K,1); eXs=zeros(K,N);
 Yks=repmat(Y,K,1); eYs=zeros(K,N);
 
 for k=1:K
-    eXs(k,:)=mvnrnd(zeros(N,1),Rinv);
-    eYs(k,:)=mvnrnd(zeros(N,1),Rinv);
+    eXs(k,:)=mvnrnd(zeros(N,1),var_correction*Rinv);
+    eYs(k,:)=mvnrnd(zeros(N,1),var_correction*Rinv);
 end
 
 Xks=Xks+eXs; Yks=Yks+eYs;

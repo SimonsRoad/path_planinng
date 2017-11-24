@@ -2,127 +2,84 @@
 global real_map 
 real_map=robotics.OccupancyGrid(10,10,20);
 
-obs_x=[3 7 8]; dx=[0.3 0.5 2];
-obs_y=[5 9 6]; dy=[2 1 0.5];
+% map1
+
+% obs_x=[3 7 8]; dx=[0.3 0.5 2];
+% obs_y=[5 9 6]; dy=[2 1 0.5];
+% Nx=200; Ny=200;
+% Nobs=length(obs_x);
+% 
+
+% map2
+
+obs_x=[7 6]; dx=[0.5 0.5];
+obs_y=[2 8]; dy=[2 2];
 Nx=200; Ny=200;
 Nobs=length(obs_x);
 
 for I =1: Nobs
-
     [xs,ys]=meshgrid(linspace(obs_x(I)-dx(I),obs_x(I)+dx(I),Nx),linspace(obs_y(I)-dy(I),obs_y(I)+dy(I),Ny));
     obstacle=[reshape(xs,[],1) reshape(ys,[],1)];
     setOccupancy(real_map,obstacle,1)
 end
 
+
+
 figure
 real_map.show()
 
 %% occu_map 
+
+global occu_map 
+occu_map=robotics.OccupancyGrid(10,10,20);
+
+%% set occupancy value to location that is pre-defined 
+
+% pre_range=2;
+% pre_pose=[7 6 0];
+% pre_Nray=200;
+% 
+% 
+% upper_right=occu_map.world2grid(pre_pose(1:2)+pre_range*[1 1]);
+% lower_left=occu_map.world2grid(pre_pose(1:2)+pre_range*[-1 -1]);
+% mat=real_map.occupancyMatrix;
+% 
+% for ix=min(lower_left(1),upper_right(1)):max(lower_left(1),upper_right(1))
+%     for iy=min(lower_left(2),upper_right(2)):max(lower_left(2),upper_right(2))
+%         if abs(mat(ix,iy)-0.5)<0.1 % free
+%             occu_map.setOccupancy([ix iy],0.1,'grid');
+%         else
+%             occu_map.setOccupancy([ix iy],0.9,'grid');
+%         end
+%     end
+% end
+
+%% initial pose 
 x0=[1 1.2]';
 
 pose = [x0' pi/4.5];
-maxrange = 5;
+maxrange = 3;
 Nray=100;
 
 angle_min=-pi/8;
 angle_max=pi/8;
-global occu_map 
-occu_map=robotics.OccupancyGrid(10,10,20);
+
+
 % ray insertion using real_map and occu_map
 
 rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
-mat=occu_map.occupancyMatrix;
 
 occu_map.show()
 hold on
 
 
-
-
-%% frontier test  
-
-frontier_occu_map=occu_map.occupancyMatrix;
-frontier_occu_map(frontier_occu_map<0.2)=0;
-loc_idx1=frontier_occu_map>=0.2;
-loc_idx2=frontier_occu_map<0.7;
-loc_idx=logical (loc_idx1 .* loc_idx2);
-frontier_occu_map(loc_idx)=0.5;
-frontier_occu_map(frontier_occu_map>0.7)=2;
-
-pad=zeros(occu_map.GridSize(1)+2,occu_map.GridSize(2)+2);
-mask=pad;
-mask(2:end-1,2:end-1)=frontier_occu_map;
-
-conv1=pad;
-conv1(1:end-2,2:end-1)=frontier_occu_map;
-
-res=abs(mask-conv1);
-[row,col]=find(res==0.5);
-
-frontier_idx=[row col];
-
-
-conv1=pad;
-conv1(2:end-1,1:end-2)=frontier_occu_map;
-
-res=abs(mask-conv1);
-[row,col]=find(res==0.5);
-
-frontier_idx=[frontier_idx;[row col]];
-
-conv1=pad;
-conv1(3:end,2:end-1)=frontier_occu_map;
-
-res=abs(mask-conv1);
-[row,col]=find(res==0.5);
-
-frontier_idx=[frontier_idx;[row col]];
-
-
-conv1=pad;
-conv1(2:end-1,3:end)=frontier_occu_map;
-
-res=abs(mask-conv1);
-[row,col]=find(res==0.5);
-
-frontier_idx=[frontier_idx;[row col]];
-
-
-erase_idx=[];
-
-for i=1:length(frontier_idx)
-    
-    if (sum(frontier_idx(i,1)==[1 2 occu_map.GridSize(1)+1 occu_map.GridSize(1)+2])>0) || (sum(frontier_idx(i,2)==[1 2 occu_map.GridSize(2)+1 occu_map.GridSize(2)+2])>0) 
-        erase_idx=[erase_idx i];
-    end
-    
-end
-
-
-frontier_idx(erase_idx,:)=[];
-frontier_idx=frontier_idx-ones(length(frontier_idx),2);
-
-
-res=zeros(200);
-for i=1:length(frontier_idx)
-    res(frontier_idx(i,1),frontier_idx(i,2))=1;
-end
-
-frontier_xy=occu_map.grid2world(frontier_idx);
-plot(frontier_xy(:,1),frontier_xy(:,2),'co')
-
-
-
-
-
-%% initial  planning 
-N_init=50; % initial time step 
+N_init=100; % initial time step 
 dt=0.2; 
 K=20; % noisy trajectories 
 max_iter=10; 
 verbose=true;
 tol=0.2;
-x0=[1 1]'; xN=[9 9]';
+x0=[1 1]'; xN=[9 2]';
 
 % plot(x0(1),x0(2),'c*')
 % hold on 
@@ -134,7 +91,7 @@ X0s=X0; Y0s=Y0;
 N_guess=5;
 
 % mutiple initial guess for global search 
-%%
+
 xc=(x0+xN)/2;
 v=(xN-x0); v=[v(2) -v(1)]/norm(v);
 pseudo_t=[0 0.5 1]; % this is for polyfit dummy input variable 
@@ -151,16 +108,18 @@ for i=1:length(d)
     X0s=[X0s; X0]; Y0s=[Y0s ;Y0];
 end
 
+
 %%
 
-% occu_map.show()
+occu_map.show()
+hold on 
 plot(x0(1),x0(2),'c*')
 plot(xN(1),xN(2),'r*')
 hold on 
 Xs=[]; Ys=[]; costs=[];
 for i=1:N_guess
     fprintf('current guess: %d ----------------------\n',i);
-    [X_perturbed,Y_perturbed,X_history,Ys_history,cost]=STOMP_fun(X0s(i,:),Y0s(i,:),K,dt,100,0.1,verbose);
+    [X_perturbed,Y_perturbed,X_history,Ys_history,cost]=STOMP_fun(X0s(i,:),Y0s(i,:),K,dt,100,1,verbose);
     Xs=[Xs;X_perturbed]; Ys=[Ys;Y_perturbed]; costs=[costs cost];
     plot(X_perturbed,Y_perturbed,'r-')
 end
@@ -174,39 +133,109 @@ figure
 
 n_move=10;
 n_current=1;
-
+n_interp=4; % number of interp between 2 points
 %%
 
+while n_current<N_init
+is_colision=false;
+
 for i=1:n_move
-    pose=[X(n_current+i) Y(n_current+i) atan2(Y(n_current+i)-Y(n_current+i-1),X(n_current+i),X(n_current+i-1))];
+    
+    n_current=n_current+1;
+    
+    pose=[X(n_current) Y(n_current) atan2(Y(n_current)-Y(n_current-1),X(n_current)-X(n_current-1))];
     % occupancy map update 
     rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
     % re - evaluation
-    if cost>1000
-        disp('obstacle encountered')
-    end
-    
-    cost=cost_occupancy(X(n_current+i:end),Y(n_current+i:end),occu_map);
 
+    cost=cost_occupancy(X(n_current:end),Y(n_current:end),occu_map);
+    
+    % plotting 
     occu_map.show()
     hold on
-    % plot path...
     plot(X,Y,'b-')
     plot(pose(1),pose(2),'c*')
     plot(xN(1),xN(2),'r*')
     pause(1e-1)
+    
+
+    if cost>1000
+        disp('obstacle encountered')
+        is_colision=true;
+        break
+    end
+        
+
+    
 end
 
-n_current=n_current+n_move;
 
+if is_colision 
 
-%% replanning 
-X0=X(n_current:end); Y0=Y(n_current:end);
-[X,Y,X_history,Ys_history]=STOMP_fun(X0,Y0,K,dt,100,tol,verbose);
+    %replanning 
 
-% plot path...
-plot(X,Y,'b-')
-plot(X(1),Y(1),'c*')
-plot(xN(1),xN(2),'r*')
+    % exploration first 
+    % frontier 
 
+    obs_center=pose(1:2);
+    obs_rad=maxrange-0.5;
 
+    frontiers=get_frontier(occu_map,obs_center,obs_rad);
+
+    % frontier clustering 
+    epsilon=0.2;
+    MinPts=10;
+    IDX=DBSCAN(frontiers,epsilon,MinPts);
+
+    frontier_cluster_colors={'co','yo','mo'};
+    frontier_centroid_colors={'c*','y*','m*'};
+
+    N_cluster=max(IDX);
+    centroids=[];
+    for n=1:N_cluster
+        this_cluster=frontiers(IDX==n,:);
+        centroid=mean(this_cluster);
+        centroids=[centroids ; centroid];
+%         plot(this_cluster(:,1),this_cluster(:,2),frontier_cluster_colors{n})
+    end
+
+    % let's look at the nearest centroid from agent and goal 
+    w1=0.5; w2=1;
+    centroid_dist=w1*sqrt(sum((pose(1:2)-centroids).^2,2))+w2*sqrt(sum((xN(1:2)'-centroids).^2,2));
+    
+    [~,min_idx]=min(centroid_dist);
+    
+    min_centroid=centroids(min_idx,:);
+    look_angle=atan2(min_centroid(2)-pose(2),min_centroid(1)-pose(1));
+    Kp=0.1;
+    
+    while abs(pose(3)-look_angle)>5*pi/180
+        pose(3)=pose(3)+Kp*(look_angle-pose(3));
+        rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
+        
+        occu_map.show()
+        hold on
+        plot(X,Y,'b-')
+        plot(pose(1),pose(2),'c*')
+        plot(xN(1),xN(2),'r*')
+        pause(1e-1)
+        
+    end
+    
+    % replanning
+    X0=X(n_current:end); Y0=Y(n_current:end);
+    
+    [X_re,Y_re,X_history,Ys_history]=STOMP_fun(X0,Y0,K,dt,100,tol,verbose);
+
+    X(n_current:end)=X_re;
+    Y(n_current:end)=Y_re;
+    
+    
+    % plot path...
+    plot(X,Y,'b-')
+    plot(X(1),Y(1),'c*')
+    plot(xN(1),xN(2),'r*')
+
+    
+end
+end

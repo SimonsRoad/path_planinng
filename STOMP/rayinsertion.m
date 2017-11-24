@@ -16,7 +16,7 @@ for i=1:Nray
 end
 
 
-startpt=pose(1:2)
+startpt=pose(1:2);
 
 occu_map.insertRay(pose,ranges,angles,maxrange,[0.1 1])
 
