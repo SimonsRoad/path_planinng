@@ -208,7 +208,7 @@ if is_colision
     
     centroid_info=compute_info_gain(centroids,maxrange,0.5);
     
-    centroid_cost=w*centroid_info-centroid_dist;
+    cenroid_cost=w*centroid_info-centroid_dist;
     
     [~,max_idx]=max(centroid_cost);
     
@@ -228,8 +228,8 @@ if is_colision
         % total frontier 
         plot(frontiers(:,1),frontiers(:,2),'co')
         % target frontier 
-        target_idx=find(IDX==max_idx);
-        plot(frontiers(target_idx,1),frontiers(target_idx,2),'go')
+        
+        plot()
         
         
         pause(1e-1)
