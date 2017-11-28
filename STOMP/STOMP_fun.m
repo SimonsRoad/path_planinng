@@ -40,7 +40,7 @@ end
 
 
 
-while ((iter_count<max_iter) && cost_diff>tol) || (cost_old>1000)
+while ((iter_count<max_iter) && cost_diff>tol) 
 %% k noisy trajectories generation
 
 % for stuck situation in local minima 

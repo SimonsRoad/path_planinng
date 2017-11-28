@@ -23,6 +23,4 @@ for i=1:length(d)
     X0s=[X0s; X0]; Y0s=[Y0s ;Y0];
 end
 
-
-
 end

@@ -1,5 +1,6 @@
 function [res,occval,obs_where]=cost_occupancy(xs,ys,occu_map,varargin)
     % occu_val is raw occupancy data along a trajectory 
+    flag=true;
    if iswithin([xs;ys],[occu_map.XWorldLimits;occu_map.YWorldLimits])
         occval=[];
         obs_where=[];
@@ -8,8 +9,10 @@ function [res,occval,obs_where]=cost_occupancy(xs,ys,occu_map,varargin)
             
             occval=[occval ;occu_map.getOccupancy([midPts;endPts],'grid')];
             
-            if(sum(occval>0.6))
+            
+            if(sum(occval>0.7) && flag)
                 obs_where=i;
+                flag=false;
             end
             
         end

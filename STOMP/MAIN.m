@@ -129,8 +129,9 @@ for i=1:n_move
     % occupancy map update 
     rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
     % re - evaluation
-
+    
     [cost,~,obs_where]=cost_occupancy(X(n_current:end),Y(n_current:end),occu_map,{});
+    obs_where=obs_where+(N_init-length(X(n_current:end)));
     
     % plotting 
     occu_map.show()
@@ -138,7 +139,7 @@ for i=1:n_move
     plot(X,Y,'b-')
     plot(pose(1),pose(2),'c*')
     plot(xN(1),xN(2),'r*')
-    pause(1e-1)
+    pause(1e-3)
     
 
     if cost>1000
@@ -159,8 +160,8 @@ if is_colision
     % exploration first 
     % frontier 
 
-    obs_center=pose(1:2);
-    obs_rad=maxrange-0.8;
+    obs_center=([X(obs_where) Y(obs_where)]);
+    obs_rad=maxrange+2;
 
     frontiers=get_frontier(occu_map,obs_center,obs_rad);
 
@@ -176,14 +177,15 @@ if is_colision
     centroids=[];
     for n=1:N_cluster
         this_cluster=frontiers(IDX==n,:);
-        centroid=mean(this_cluster);
-        centroids=[centroids ; centroid];
-        
+        if length(this_cluster) > 30 
+            centroid=mean(this_cluster);
+            centroids=[centroids ; centroid];
+        end
     end
 
     % let's look at the nearest centroid from agent and best information gain  
     w1=0.01;    
-    w2=1;
+    w2=2;
     w3=2;
     
     
@@ -200,6 +202,8 @@ if is_colision
     max_centroid=centroids(max_idx,:);
     look_angle=atan2(max_centroid(2)-pose(2),max_centroid(1)-pose(1));
     Kp=0.3;
+    
+    % look at the centroid 
     
     while abs(pose(3)-look_angle)>5*pi/180
         pose(3)=pose(3)+Kp*(look_angle-pose(3));
@@ -220,6 +224,13 @@ if is_colision
         pause(1e-1)
         
     end
+    
+    % and go for some time 
+    
+    
+    
+    
+    
     
     % replanning
     
