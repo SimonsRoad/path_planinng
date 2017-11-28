@@ -84,29 +84,10 @@ x0=[1 1]'; xN=[9 2]';
 % plot(x0(1),x0(2),'c*')
 % hold on 
 % plot(xN(1),xN(2),'r*')
-X0=linspace(x0(1),xN(1),N_init); Y0=linspace(x0(2),xN(2),N_init);
-% plot(X0,Y0,'b-')
-X0s=X0; Y0s=Y0;
 
-N_guess=5;
 
-% mutiple initial guess for global search 
+[X0s,Y0s]=initial_guess_traj(x0,xN,N_init);
 
-xc=(x0+xN)/2;
-v=(xN-x0); v=[v(2) -v(1)]/norm(v);
-pseudo_t=[0 0.5 1]; % this is for polyfit dummy input variable 
-
-d=[1/4 1/2 -1/4 -1/2];
-
-for i=1:length(d)
-    xm=xc+v'*d(i)*norm(xN-x0);
-    
-    px=polyfit(pseudo_t,[x0(1) xm(1) xN(1)],2);
-    py=polyfit(pseudo_t,[x0(2) xm(2) xN(2)],2);
-    X0=polyval(px,linspace(0,1,N_init));
-    Y0=polyval(py,linspace(0,1,N_init));
-    X0s=[X0s; X0]; Y0s=[Y0s ;Y0];
-end
 
 
 %%
@@ -200,15 +181,18 @@ if is_colision
     end
 
     % let's look at the nearest centroid from agent and best information gain  
-    w=0.01;    
-
+    w1=0.01;    
+    w2=1;
+    w3=2;
     
     
     centroid_dist=sqrt(sum((pose(1:2)-centroids).^2,2));
     
     centroid_info=compute_info_gain(centroids,maxrange,0.5);
     
-    centroid_cost=w*centroid_info-centroid_dist;
+    centroid_goal_dist=sqrt(sum(([xN(1) xN(2)]-centroids).^2,2));
+    
+    centroid_cost=w1*centroid_info-w2*centroid_dist-w3*centroid_goal_dist;
     
     [~,max_idx]=max(centroid_cost);
     
@@ -237,10 +221,24 @@ if is_colision
     end
     
     % replanning
-    X0=X(n_current:end); Y0=Y(n_current:end);
     
-    [X_re,Y_re,X_history,Ys_history]=STOMP_fun(X0,Y0,K,dt,100,tol,verbose);
-
+    
+    % using path from previous step 
+    %X0=X(n_current:end); Y0=Y(n_current:end);
+    
+    [X0s,Y0s]=initial_guess_traj([X(n_current) Y(n_current)],xN,N_init-n_current+1);
+    
+    Xs=[]; Ys=[]; costs=[];
+    for i=1:N_guess
+        fprintf('current guess: %d ----------------------\n',i);
+        [X_perturbed,Y_perturbed,X_history,Ys_history,cost]=STOMP_fun(X0s(i,:),Y0s(i,:),K,dt,100,1,verbose);
+        Xs=[Xs;X_perturbed]; Ys=[Ys;Y_perturbed]; costs=[costs cost];
+        plot(X_perturbed,Y_perturbed,'r-')
+    end
+        
+    [~,max_idx]=min(costs);
+    X_re=Xs(max_idx,:); Y_re=Ys(max_idx,:);
+    
     X(n_current:end)=X_re;
     Y(n_current:end)=Y_re;
     
