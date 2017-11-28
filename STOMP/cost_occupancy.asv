@@ -1,4 +1,4 @@
-function [res,occval,obs_where]=cost_occupancy(xs,ys,occu_map,varargin)
+function [res,occval]=cost_occupancy(xs,ys,occu_map,varargin)
     % occu_val is raw occupancy data along a trajectory 
    if iswithin([xs;ys],[occu_map.XWorldLimits;occu_map.YWorldLimits])
         occval=[];
@@ -7,17 +7,15 @@ function [res,occval,obs_where]=cost_occupancy(xs,ys,occu_map,varargin)
             [endPts,midPts] = occu_map.raycast([xs(i) ys(i)],[xs(i+1) ys(i+1)]);
             
             occval=[occval ;occu_map.getOccupancy([midPts;endPts],'grid')];
-            
-            if(sum(occval>0.6))
-                obs_where=i;
-            end
-            
+            if(sum())
         end
 % 
-        occval(occval<0.05)=0.02;
+        occval(occval<0.05)=0.05;
         how_many_cross=sum(occval>0.6);
 
-         
+%         w1=50;
+%         cost1=w1*traj_length(xs,ys);
+
         w2=100; w3=1000;  
         cost2=w2*prod(occval)^(1/length(occval));
         cost3=w3*how_many_cross;
@@ -29,7 +27,7 @@ function [res,occval,obs_where]=cost_occupancy(xs,ys,occu_map,varargin)
    end
    
    %this is for smoothing reconnection
-   if length(varargin{1})>0
+   if ~isempty(varargin)
        w4=1000;
        v0=cell2mat(varargin{1});
        v1=[xs(2) ys(2)]-[xs(1) ys(1)];

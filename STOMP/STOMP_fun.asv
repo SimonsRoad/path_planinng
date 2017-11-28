@@ -70,11 +70,11 @@ end
 min_cost=min(cost_mat);
 max_cost=max(cost_mat);
 
-h=5;
+h=50;
 
 for n=1:N
     S=(cost_mat(:,n)-min_cost(n))/(max_cost(n)-min_cost(n));
-%     S(S~=S)=inf; % if nan
+    S(S~=S)=inf; % if nan
     cost_mat(:,n)=exp(-h*S);
 end
 

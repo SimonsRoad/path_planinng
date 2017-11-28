@@ -11,8 +11,8 @@ xc=(x0+xN)/2;
 v=(xN-x0); v=[v(2) -v(1)]/norm(v);
 pseudo_t=[0 0.5 1]; % this is for polyfit dummy input variable 
 
-d=[1/4 1/2 -1/4 -1/2];
-
+%d=[1/4 1/2 -1/4 -1/2];
+d=[1/2 -1/2];
 for i=1:length(d)
     xm=xc+v'*d(i)*norm(xN-x0);
     
