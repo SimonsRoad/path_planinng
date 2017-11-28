@@ -209,6 +209,7 @@ if is_colision
         pose(3)=pose(3)+Kp*(look_angle-pose(3));
         rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
         
+        % plotting 
         occu_map.show()
         hold on
         plot(X,Y,'b-')
@@ -228,19 +229,41 @@ if is_colision
     % and go for some time 
     
     
+    explore_target=(pose(1:2)+max_centroid)/2;
+    N_explore=5;
+    dx=(explore_target(1)-pose(1))/N_explore;
+    dy=(explore_target(2)-pose(2))/N_explore;
     
+    for n_explore=1:5
+    pose(1:2)=pose(1:2)+[dx dy];
+    rayinsertion(pose,angle_min,angle_max,Nray,maxrange)
+
     
+        % explore 
+        occu_map.show()
+        hold on
+        plot(X,Y,'b-')
+        plot(pose(1),pose(2),'c*')
+        plot(xN(1),xN(2),'r*')
+        % total frontier 
+        plot(frontiers(:,1),frontiers(:,2),'co')
+        % target frontier 
+        target_idx=find(IDX==max_idx);
+        plot(frontiers(target_idx,1),frontiers(target_idx,2),'go')
+        plot(explore_target(1),explore_target(2),'ro')
+        pause(1e-1)
+    
+    end
     
     
     % replanning
     
-    
     % using path from previous step 
     %X0=X(n_current:end); Y0=Y(n_current:end);
     
-    n_start_replan=floor((n_current+obs_where)/2);
+%     n_start_replan=floor((n_current+obs_where)/2);
     
-    [X0s,Y0s]=initial_guess_traj([X(n_start_replan) Y(n_start_replan)],xN,N_init-n_start_replan+1);
+    [X0s,Y0s]=initial_guess_traj([pose(1) pose(2)],xN,N_init);
     
     Xs=[]; Ys=[]; costs=[];
     for i=1:size(X0s,1)
@@ -253,9 +276,10 @@ if is_colision
     [~,max_idx]=min(costs);
     X_re=Xs(max_idx,:); Y_re=Ys(max_idx,:);
     
-    X(n_start_replan:end)=X_re;
-    Y(n_start_replan:end)=Y_re;
+    X=X_re;
+    Y=Y_re;
     
+    n_current=1;
     
     % plot path...
     plot(X,Y,'b-')
