@@ -40,12 +40,12 @@ end
 
 
 
-while ((iter_count<max_iter) && cost_diff>tol) || (cost_old>1000)
+while ((iter_count<max_iter) && cost_diff>tol) 
 %% k noisy trajectories generation
 
 % for stuck situation in local minima 
 if cost_old>1000
-    var_correction=3;
+    var_correction=cost_old/1000;
 else
     var_correction=1;
 end
@@ -70,11 +70,11 @@ end
 min_cost=min(cost_mat);
 max_cost=max(cost_mat);
 
-h=50;
+h=5;
 
 for n=1:N
     S=(cost_mat(:,n)-min_cost(n))/(max_cost(n)-min_cost(n));
-    S(S~=S)=inf; % if nan
+%     S(S~=S)=inf; % if nan
     cost_mat(:,n)=exp(-h*S);
 end
 

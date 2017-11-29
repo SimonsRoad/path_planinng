@@ -18,7 +18,7 @@ end
 
 startpt=pose(1:2);
 
-occu_map.insertRay(pose,ranges,angles,maxrange,[0.05 1])
+occu_map.insertRay(pose,ranges,angles,maxrange)
 
 
 

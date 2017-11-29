@@ -45,9 +45,9 @@ while ((iter_count<max_iter) && cost_diff>tol)
 
 % for stuck situation in local minima 
 if cost_old>1000
-    var_correction=3;
+    var_correction=(cost_old/1000)^3;
 else
-    var_correction=1;
+    var_correction=0.8;
 end
 
 Xks=repmat(X,K,1); eXs=zeros(K,N);
