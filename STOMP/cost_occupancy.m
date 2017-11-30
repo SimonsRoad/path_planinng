@@ -22,13 +22,12 @@ function [res,occval,obs_where]=cost_occupancy(xs,ys,occu_map,varargin)
 
          
         w2=100; w3=1000;  
-        cost2=w2*prod(occval)^(1/length(occval));
+        %cost2=w2*prod(occval)^(1/length(occval));
+        cost2=w2*mean(occval);
+        
         cost3=w3*how_many_cross;
         res=cost2(end)+cost3;
-        if res==0
-            disp('fuck')
-            
-        end
+
 %         fprintf('trajectory cost : %f / uncertainty cost : %f / obstacle cost: %f \n',cost1,cost2,cost3);
    else
         occval=[];

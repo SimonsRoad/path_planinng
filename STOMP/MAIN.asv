@@ -357,8 +357,8 @@ if is_colision
 
     % let's look at the nearest centroid from agent and best information gain  
     w1=0.01;    
-    w2=2;
-    w3=3;
+    w2=5;
+    w3=5;
     
     
     centroid_dist=sqrt(sum((pose(1:2)-centroids).^2,2));
