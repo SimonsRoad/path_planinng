@@ -1,6 +1,6 @@
 %% real map contruction 
 global real_map 
-real_map=robotics.OccupancyGrid(10,10,20);
+real_map=robotics.OccupancyGrid(10,10,10);
 
 % mat=real_map.occupancyMatrix;
 % 
@@ -42,7 +42,7 @@ real_map.show()
 %% occu_map 
 
 global occu_map 
-occu_map=robotics.OccupancyGrid(10,10,20);
+occu_map=robotics.OccupancyGrid(10,10,10);
 
 % initialization with uncetain information 
 
@@ -224,6 +224,7 @@ if is_colision
     MinPts=5;
     IDX=DBSCAN(frontiers,epsilon,MinPts);
     
+    N_cluster=max(IDX)
     % filtered index
     fil_IDX=[];
     centroids=[];

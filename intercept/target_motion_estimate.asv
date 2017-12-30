@@ -1,0 +1,22 @@
+function [px,py,pz]=target_motion_estimate(t,p)
+%% Arguments
+    %% input : observation
+    % t = [t0 t1 t2 .. tN] ( 1 x Nobs)
+    % p = [ xs; ys; zs] (3 x Nobs)
+   %% output : polynomial coeffi.
+
+%% time scaling 
+    global t_horizon_prediction t_horizon_observ
+    t_cur=t(end);  % last observation is current time 
+    t=(t-t_cur)/t_horizon_prediction; % to make the future time lie in [0,1]
+    
+    
+   
+%% fitting with order 3 poly
+   
+    px=polyfit(t,p(1,:),3);
+    py=polyfit(t,p(2,:),3);
+    pz=polyfit(t,p(3,:),3);
+   
+
+end
