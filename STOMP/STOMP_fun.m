@@ -74,7 +74,7 @@ h=5;
 
 for n=1:N
     S=(cost_mat(:,n)-min_cost(n))/(max_cost(n)-min_cost(n));
-%     S(S~=S)=inf; % if nan
+    %S(S~=S)=inf; % if nan
     cost_mat(:,n)=exp(-h*S);
 end
 
@@ -113,3 +113,4 @@ end
 
 
 
+end

@@ -47,9 +47,6 @@ occu_map=robotics.OccupancyGrid(10,10,10);
 % initialization with uncetain information 
 
 
-
-
-
 %% set occupancy value to location that is pre-defined 
 
 % pre_range=2;

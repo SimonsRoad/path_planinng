@@ -172,6 +172,7 @@
         xis=tan(alpha);
         yis=(g_history(3,1:count)-p_history(3,1:count))./(d.*cos(alpha));
         subplot(6,2,[8 10 12])
+        title('Image plane')
         hold on
         axis([-tan(FOV/2) tan(FOV/2) -tan(FOV/2) tan(FOV/2)])
         plot(xis,yis,'k-','LineWidth',1)
