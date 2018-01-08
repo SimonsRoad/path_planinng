@@ -1,12 +1,24 @@
-lx=10; ly=10; 
+figure 
+
+set(gcf,'Position',[200,100,900,1000],'color','w')
+
+
+while 1
+
+clear all
+
+
+
+lx=10; ly=8; 
+clf
 global real_map 
 
-obs_x=[7 5 2 8]; scale_x=[3 0.2 2 2];
-obs_y=[6.6 9 4 1.5]; scale_y=[0.2 1 0.3 1.5];
+obs_x=[8.5 7 5.5 4.5 3.4 1.5 0.8 3.5 3.5 1.5 5.5]; scale_x=[1.5 0.1 0.1 1 0.1 0.1 0.8 0.1 2 0.1 0.1];
+obs_y=[3 2 1.5 3 2 2 3  6.5 5 6 6]; scale_y=[0.05 1 1.5 0.1 1 1 0.1 1.5 0.05 1 1];
 
 global dx dy 
 global Nx Ny
-Nx=50; Ny=50;
+Nx=50; Ny=40;
 real_map=robotics.OccupancyGrid(lx,ly,Nx/lx);
 
 dx=lx/Nx; dy=ly/Ny;
@@ -19,10 +31,14 @@ for I =1:Nobs
     setOccupancy(real_map,obstacle,1)
 end
 
+% 
+% figure
+% real_map.show()
 
-figure
-real_map.show()
-
+    
+    
+    
+    
 %% occu_map 
 
 global occu_map 
@@ -30,14 +46,14 @@ occu_map=robotics.OccupancyGrid(lx,ly,Nx/lx);
 
 % initialization with uncetain information 
 maxrange = 3;
-Nray=200;
+Nray=500;
 
-angle_min=-pi;
-angle_max=pi;
+angle_min=0;
+angle_max=2*pi;
 
 
 % agent1
-x10=[2 0.5];
+x10=[1 4];
 
 pose1 = [x10 pi/2];
 
@@ -47,7 +63,7 @@ pose1 = [x10 pi/2];
 rayinsertion(pose1,angle_min,angle_max,Nray,maxrange)
 
 % agent2
-x20=[4 1];
+x20=[9 7];
 
 pose2 = [x20 pi/2];
 
@@ -57,7 +73,7 @@ pose2 = [x20 pi/2];
 rayinsertion(pose2,angle_min,angle_max,Nray,maxrange)
 
 obstacle_accumulation=[];
-[obstacle_i,obstacle_j]=find(occu_map.occupancyMatrix>0.9);
+[obstacle_i,obstacle_j]=find(occu_map.occupancyMatrix>0.7);
 
 obstacle_accumulation=[obstacle_accumulation; [obstacle_i obstacle_j] ];
 
@@ -69,8 +85,8 @@ end
 
 occu_map.show()
 hold on
-plot(x10(1),x10(2),'ro')
-plot(x20(1),x20(2),'bo')
+plot(x10(1),x10(2),'ro','MarkerSize',10,'MarkerFaceColor','r')
+plot(x20(1),x20(2),'bo','MarkerSize',10,'MarkerFaceColor','b')
 
 x1=x10; x2=x20;
 %% Frontier
@@ -78,9 +94,10 @@ frontiers=get_frontier(occu_map,[5 5],20);
 
 % frontier clustering 
 epsilon=0.3;
-MinPts=5;
+MinPts=4;
 n_drop=10;
 
+c=['c','g','y','c','g','y','c'];
 
 IDX=DBSCAN(frontiers,epsilon,MinPts);
 
@@ -88,18 +105,24 @@ N_cluster=max(IDX);
 % filtered index
 fil_IDX=[];
 centroids=[];
+n_valid_cluster=0;
+
 for n=1:N_cluster
     this_cluster=frontiers(IDX==n,:);
+    
     if length(this_cluster) > n_drop
+        n_valid_cluster=n_valid_cluster+1;
+        plot(frontiers(:,1),frontiers(:,2),'s','MarkerSize',2,'LineWidth',5)
+
         fil_IDX=[fil_IDX n];
         centroid=mean(this_cluster);
         centroids=[centroids ; centroid];
     end
 end
 
-[c1,c2]=assign_cent(x1,x2,centroids,frontiers,IDX);
+[c1,c2]=assign_cent(x1,x2,centroids,frontiers,IDX,fil_IDX);
 
-plot(frontiers(:,1),frontiers(:,2),'co','MarkerSize',1,'LineWidth',2)
+% plot(frontiers(:,1),frontiers(:,2),'co','MarkerSize',1,'LineWidth',2)
 plot(centroids(:,1),centroids(:,2),'go','LineWidth',2)
 plot(c1(1),c1(2),'r*')
 plot(c2(1),c2(2),'b*')
@@ -111,10 +134,12 @@ plot(local_path1(:,1),local_path1(:,2),'r--')
 local_path2=local_planner(occu_map,x2,c2);
 plot(local_path2(:,1),local_path2(:,2),'b--')
 
+pause(1e-3)
+
 %% move 
 
-n1_count=1; n1_exe_max=5; 
-n2_count=1; n2_exe_max=5;
+n1_count=1; n1_exe_max=6; 
+n2_count=1; n2_exe_max=6;
 
 for t=1:100
     % move
@@ -124,15 +149,19 @@ for t=1:100
     rayinsertion([x1 0],angle_min,angle_max,Nray,maxrange)
     rayinsertion([x2 0],angle_min,angle_max,Nray,maxrange)
 
+
     
     
-    [obstacle_i,obstacle_j]=find(occu_map.occupancyMatrix>0.9);
+    [obstacle_i,obstacle_j]=find(occu_map.occupancyMatrix>0.7);
 
     obstacle_accumulation=[obstacle_accumulation; [obstacle_i obstacle_j] ];
 
     if ~isempty(obstacle_accumulation)
         occu_map.setOccupancy(obstacle_accumulation,1,'grid')
     end
+    
+    occu_map.show()
+
 
    
     frontiers=get_frontier(occu_map,[5 5],20);
@@ -143,17 +172,26 @@ for t=1:100
     % filtered index
     fil_IDX=[];
     centroids=[];
+    
+    n_valid_cluster=0;
     for n=1:N_cluster
         this_cluster=frontiers(IDX==n,:);
+        
+
         if length(this_cluster) > n_drop
+            n_valid_cluster=n_valid_cluster+1;
+            plot(this_cluster(:,1),this_cluster(:,2),strcat(c(n_valid_cluster),'s'),'MarkerSize',2,'LineWidth',5)
             fil_IDX=[fil_IDX n];
             centroid=mean(this_cluster);
             centroids=[centroids ; centroid];
         end
     end
 
-    [c1,c2]=assign_cent(x1,x2,centroids,frontiers,IDX);
-   
+    if ~isempty(fil_IDX)
+        [c1,c2]=assign_cent(x1,x2,centroids,frontiers,IDX,fil_IDX);
+         plot(centroids(:,1),centroids(:,2),'go','LineWidth',2)
+
+    end
            
     plot(c1(1),c1(2),'r*')
     plot(c2(1),c2(2),'b*')
@@ -180,22 +218,24 @@ for t=1:100
     
     fprintf('agent1 : %d agent2 : %d \n',n1_count,n2_count);
 
-   
-    plot(x1(1),x1(2),'ro')
-    plot(x2(1),x2(2),'bo')
+
+    plot(x1(1),x1(2),'ro','MarkerSize',10,'MarkerFaceColor','r')
+    plot(x2(1),x2(2),'bo','MarkerSize',10,'MarkerFaceColor','b')
 
    
-    plot(frontiers(:,1),frontiers(:,2),'co','MarkerSize',1,'LineWidth',2)
-    plot(centroids(:,1),centroids(:,2),'go','LineWidth',2)
+%     plot(frontiers(:,1),frontiers(:,2),'co','MarkerSize',1,'LineWidth',2)
 
     
     plot(local_path1(:,1),local_path1(:,2),'r--')
     plot(local_path2(:,1),local_path2(:,2),'b--')
 
    
-    pause(1)
+    pause(1e-3/2)
 
     
  
 end
 
+
+clear all;
+end

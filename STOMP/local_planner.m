@@ -7,13 +7,26 @@ global dx dy Nx Ny
 MAP=2*(ones(Nx,Ny));
 
 for row=1:length(ix)
-MAP(iy(row),Nx-ix(row)+1)=-1;
+MAP(iy(row),Ny-ix(row)+1)=-1;
 end
 xTarget=floor(pf(1)/dx); yTarget=floor(pf(2)/dy);
 MAP(xTarget,yTarget)=0;%Initialize MAP with location of the target
 
+MAP(xTarget-1,yTarget)=0;
+MAP(xTarget+1,yTarget)=0;
+% MAP(xTarget,yTarget+1)=0;
+% MAP(xTarget,yTarget-1)=0;
+
 xStart=floor(p0(1)/dx);%Starting Position
 yStart=floor(p0(2)/dy);%Starting Position
+
+MAP(xStart-1,yStart)=0;
+MAP(xStart+1,yStart)=0;
+MAP(xStart,yStart+1)=0;
+MAP(xStart,yStart-1)=0;
+
+
+
 MAP(xStart,yStart)=1;
 MAX_X=Nx; MAX_Y=Ny;
 
@@ -154,11 +167,11 @@ if ( (xval == xTarget) && (yval == yTarget))
 %  drawnow ;
 %  end;
 % %  plot(Optimal_path(:,1)+.5,Optimal_path(:,2)+.5);
-% else
-%  pause(1);
-%  h=msgbox('Sorry, No path exists to the Target!','warn');
+else
+ pause(1);
+ disp('Sorry, No path exists to the Target!');
 %  uiwait(h,5);
-% end
+end
 
 
 

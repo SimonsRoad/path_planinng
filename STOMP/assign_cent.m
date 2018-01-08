@@ -6,11 +6,14 @@ function [c1,c2]=assign_cent(x1,x2,centroids,frontiers,IDX,fil_IDX)
     if n_cent>1
 
         for n1=1:n_cent
-            for n2=n1+1:n_cent
+            for n2=1:n_cent
+                
+                if ~(n1==n2)
                 cost=norm(x1-centroids(n1,:))+norm(x2-centroids(n2,:));
                 if cost<cost_min
                     assign_combi=[n1 n2];       
-                    cost=cost_min
+                    cost_min=cost;
+                end
                 end
             end
         end
@@ -34,7 +37,7 @@ function [c1,c2]=assign_cent(x1,x2,centroids,frontiers,IDX,fil_IDX)
        
        n_frontiers=length(frontiers);
        
-       c1=sum(frontiers(idx1(1:round(n_frontiers/2)),:))/round(n_frontiers/2);
+       c1=sum(frontiers(idx1(1:round(n_frontiers/3)),:))/round(n_frontiers/3);
        
        
         % determine c2
@@ -46,7 +49,7 @@ function [c1,c2]=assign_cent(x1,x2,centroids,frontiers,IDX,fil_IDX)
        
        [sorted_d2,idx2]=sort(dist2);
        
-       c2=sum(frontiers(idx2(1:round(n_frontiers/2)),:))/round(n_frontiers/2);
+       c2=sum(frontiers(idx2(1:round(n_frontiers/3)),:))/round(n_frontiers/3);
       
        
     end
