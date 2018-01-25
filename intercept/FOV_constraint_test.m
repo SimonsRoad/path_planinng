@@ -51,11 +51,10 @@ addpath('FOV_opti')
     % Augmented optimization parameters = P=[px ; py ; pz] ( 3(n+1) x 1 )
 
     % Optimization weights
-    w0=60; w1=2; w3=0.002; % weight for positional & velocity errors % jerk 
+    w0=60; w1=5; w3=0.002; % weight for positional & velocity errors % jerk 
 
     %% Initial paremeters obtaining 
     % set the solution w/o FOV constraint 
-    options=optimoptions('quadprog');
 
     % Optimization (Output: polynomial scaled in [0 1])
     pr_x=quadprog(w0*T0+w1*T1+w3*T3,-w0*T0*pt_x-w1*T1*pt_x,[],[],[t0'; t1'],[xr; xr_dot*(t_horizon_prediction)],[],[],[],options);

@@ -17,15 +17,23 @@
     t0(1)=1; t1(2)=1;
 
     % Compute the time integral matrix from 0 to 1
-    T0=zeros(n+1,n+1);  
+    T0=zeros(n+1,n+1);     
     T1=zeros(n+1,n+1);  % intergral of time vector 1st derviative    
+    T2=zeros(n+1,n+1);  % integral of timevector 2nd derviative 
     T3=zeros(n+1,n+1);  % jerk 
     for i=1:n+1
         for j=1:n+1
             T0(i,j)=1/(i+j-1);
+            
             if i>1 && j>1
                 T1(i,j)=(i-1)*(j-1)/(i+j-3);
             end
+            
+            if i>2 && j>2
+                T2(i,j)=factorial(i-1)/factorial(i-3)*factorial(j-1)/factorial(j-3)/(i+j-6+1);
+            end
+            
+            
             if i>3 && j>3
                 T3(i,j)=factorial(i-1)/factorial(i-4)*factorial(j-1)/factorial(j-4)/(i+j-8+1);
             end

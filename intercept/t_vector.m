@@ -1,9 +1,8 @@
-function t_vec=t_vector(t,n_d)
+function t_vec=t_vector(t,n_d,n)
 % this function generate vector t s.t p(t)=p'*t
 % n_d : number of derivative 
 % t : time value 
-
-global n % number of order of polynomial 
+% n : poly order
 
 t_vec=zeros(n+1,1);
 for r=(n_d): n
