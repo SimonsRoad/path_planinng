@@ -89,15 +89,15 @@ addpath('FOV_opti')
         % upper limit
         H{2*i-1}=2*blkdiag(t_vector(t,2)*t_vector(t,0)',t_vector(t,2)*t_vector(t,0)',t_vector(t,2)*t_vector(t,0)');
         H{2*i-1}=(H{2*i-1}+H{2*i-1}')/2;
-        k{2*i-1}=-([pt_x'*t_vector(t,2)*t_vector(t,0)' pt_y'*t_vector(t,2)*t_vector(t,0)'...
-            pt_z'*t_vector(t,2)*t_vector(t,0)'-9.81*t_vector(t,0)'])';
+        k{2*i-1}=-([pt_x'*t_vector(t,0)*t_vector(t,2)' pt_y'*t_vector(t,0)*t_vector(t,2)'...
+            pt_z'*t_vector(t,0)*t_vector(t,2)'-9.81*t_vector(t,0)'])';
         d{2*i-1}=-9.81*t_vector(t,0)'*pt_z-tol(i);
         
         % lower limit
         H{2*i}=-2*blkdiag(t_vector(t,2)*t_vector(t,0)',t_vector(t,2)*t_vector(t,0)',t_vector(t,2)*t_vector(t,0)');
         H{2*i}=(H{2*i}+H{2*i}')/2;
-        k{2*i}=([pt_x'*t_vector(t,2)*t_vector(t,0)' pt_y'*t_vector(t,2)*t_vector(t,0)' ...
-            pt_z'*t_vector(t,2)*t_vector(t,0)'-9.81*t_vector(t,0)'])';
+        k{2*i}=([pt_x'*t_vector(t,0)*t_vector(t,2)' pt_y'*t_vector(t,0)*t_vector(t,2)' ...
+            pt_z'*t_vector(t,0)*t_vector(t,2)'-9.81*t_vector(t,0)'])';
         d{2*i}=9.81*t_vector(t,0)'*pt_z-tol(i);
         
         i=i+1;
