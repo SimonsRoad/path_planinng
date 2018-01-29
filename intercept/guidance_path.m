@@ -54,28 +54,28 @@ function [pr_x,pr_y,pr_z]=guidance_path(pt_x_in,pt_y_in,pt_z_in,Xr,Vr,nr,g)
     %% Quadratic constraint (FOV)
     % FOV contraint apply time 
     
-%     t_FOV_constr=linspace(0.2,1,6);
-%     
-%     tol=repmat([10],1,length(t_FOV_constr));
-%     i=1;
-%     for t=t_FOV_constr
-%         upper limit
-%         H{2*i-1}=2*blkdiag(t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)');
-%         H{2*i-1}=(H{2*i-1}+H{2*i-1}')/2;
-%         k{2*i-1}=-([pt_x'*t_vector(t,0,n)*t_vector(t,2,n)' pt_y'*t_vector(t,0,n)*t_vector(t,2,n)'...
-%             pt_z'*t_vector(t,0,n)*t_vector(t,2,n)'-g*t_vector(t,0,n)'])';
-%         d{2*i-1}=-g*t_vector(t,0,n)'*pt_z-tol(i);
-%         
-%         lower limit
-%         H{2*i}=-2*blkdiag(t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)');
-%         H{2*i}=(H{2*i}+H{2*i}')/2;
-%         k{2*i}=([pt_x'*t_vector(t,0,n)*t_vector(t,2,n)' pt_y'*t_vector(t,0,n)*t_vector(t,2,n)' ...
-%             pt_z'*t_vector(t,0,n)*t_vector(t,2,n)'-g*t_vector(t,0,n)'])';
-%         d{2*i}=g*t_vector(t,0,n)'*pt_z-tol(i);
-%         
-%         i=i+1;
-%     end
-%     
+    t_FOV_constr=linspace(0.2,1,6);
+    
+    tol=repmat([5],1,length(t_FOV_constr));
+    i=1;
+    for t=t_FOV_constr
+        % upper limit
+        H{2*i-1}=2*blkdiag(t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)');
+        H{2*i-1}=(H{2*i-1}+H{2*i-1}')/2;
+        k{2*i-1}=-([pt_x'*t_vector(t,0,n)*t_vector(t,2,n)' pt_y'*t_vector(t,0,n)*t_vector(t,2,n)'...
+            pt_z'*t_vector(t,0,n)*t_vector(t,2,n)'-g*t_vector(t,0,n)'])';
+        d{2*i-1}=-g*t_vector(t,0,n)'*pt_z-tol(i);
+        
+        % lower limit
+        H{2*i}=-2*blkdiag(t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)');
+        H{2*i}=(H{2*i}+H{2*i}')/2;
+        k{2*i}=([pt_x'*t_vector(t,0,n)*t_vector(t,2,n)' pt_y'*t_vector(t,0,n)*t_vector(t,2,n)' ...
+            pt_z'*t_vector(t,0,n)*t_vector(t,2,n)'-g*t_vector(t,0,n)'])';
+        d{2*i}=g*t_vector(t,0,n)'*pt_z-tol(i);
+        
+        i=i+1;
+    end
+    
     %% QCQP solve
     pr=QCQP(Q,f,c,H,k,d,A,b,Aeq,beq,pr);
     pr_x=pr(1:n+1); pr_y=pr(n+2:2*n+2); pr_z=pr(2*n+3:3*n+3);

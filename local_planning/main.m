@@ -11,9 +11,6 @@
 % pij=[rij kji]  
 
 
-
-<<<<<<< HEAD
-
 M=zeros(4*(n+1)*m);
 keyframe=zeros(4,5); % [r_T yaw_T]'*(# of keyframe)
 
@@ -110,10 +107,7 @@ axis([0 10 0 10 0 10])
 
 %% new trial % refet p71-P73
 n=12; % order of polynomial
-=======
 %%  % refer p71-P73
-n=10; % order of polynomial
->>>>>>> 15b9fe08256a7f05110b1c2e05a5d3ff85d91a84
 % for better condition number of C matrix 
 C=10*rand(3*(n+1),1);
 

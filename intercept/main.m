@@ -13,14 +13,14 @@ clc; clear all
     
     target_path=[xs;ys;zs]; % positional history of target
     
-    xs=-xs; ys=ys+2*R; zs=3-(t_sim(N_sim/2+1:end)-t_sim(N_sim/2)).^2;
+    xs=-xs; ys=ys+2*R; zs=1-(t_sim(N_sim/2+1:end)-t_sim(N_sim/2)).^2;
     target_path=[target_path [xs;ys;zs]];
     target_path=target_path+normrnd(0,0.01,[3 length(target_path)]);
     
     
     
     %% UAV inital position 
-    p0=target_path(:,1)'+[-1 10 0];
+    p0=target_path(:,1)'+[-1 5 -2];
     v0=[0 0 0];
     a0=[0 0 0];
     
@@ -122,7 +122,7 @@ end
 
 %% Guidance
 for section=3 
-    n_pg=4; % poly order of guidance 
+    n_pg=6; % poly order of guidance 
     %% method 1 : converge position error and velocity error     
     if replan % if we have to replan the guidance path  
         [px_r,py_r,pz_r] = guidance_path(px_t,py_t,pz_t,Xr,Vr*pred_period,n_pg,9.81*pred_period^2);
@@ -184,6 +184,7 @@ for section=4
     plot3(fit_pnts(1,:),fit_pnts(2,:),fit_pnts(3,:),'-','Color',[0 0.8 0 ],'LineWidth',3)
 
     pause(1e-1)    
+    
     clf
 end
 
@@ -222,11 +223,8 @@ title('prod(e3,d)')
 prod_history=A_UAV_history(1,:).*(X_target_history(1,:) - X_UAV_history(1,:))+...
     A_UAV_history(2,:).*(X_target_history(2,:) - X_UAV_history(2,:))+...
     (A_UAV_history(3,:)+9.81).*(X_target_history(3,:) - X_UAV_history(3,:));
-
-
-
-
-plot(t_history,prod_history)
+cos_history=(prod_history./col_norm(A_UAV_history+repmat([0 0 9.81]',1,length(prod_history)))./col_norm(X_target_history-X_UAV_history));
+plot(t_history,abs(acos(abs(cos_history))-pi/2)*180/pi)
     
 
 
