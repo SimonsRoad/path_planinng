@@ -92,82 +92,82 @@ p=quadprog(C,[],A,b,Aeq,beq);
 
 
 %% PLOTTING
-% x=[]; d2x=[]; tset=[]; dx=[];
-% for time=t0_real:tf_real
-%     tset=[tset  time];
-%     traj_res=traj(p,time,n,t0_real,tf_real);
-%     x=[x traj_res.x];
-%     dx=[dx traj_res.dx];
-%     d2x=[d2x traj_res.d2x];
-% end
-% 
-% 
-% figure
-% 
-% % tmpAspect=daspect();
-% % daspect(tmpAspect([1 2 2]))
-% hold on 
-% 
-% plot3(x0(1),x0(2),x0(3),'bo')
-% plot3(xf(1),xf(2),xf(3),'ro')
-% plot3(x(1,:), x(2,:), x(3,:))
-% 
-% 
-% for time=linspace(t0_real,tf_real,20)
-% 
-% traj_res=traj(p,time,n,t0_real,tf_real);
-% 
-% %quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x),traj_res.d2x(2)/norm(traj_res.d2x),traj_res.d2x(3)/norm(traj_res.d2x),'Color','r','LineWidth',1,'MaxHeadSize',2);
-% quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1),traj_res.d2x(2),traj_res.d2x(3),'Color','r','LineWidth',1,'MaxHeadSize',2);
-% end
-% 
-% figure
-% title('ad')
-% for i=1:3
-%     subplot(3,1,i)
-%     plot(tset,d2x(i,:))
-% end
-% 
-% figure
-% for i=1:3
-%     subplot(3,1,i)
-% title('vd')
-%     plot(tset,dx(i,:))
-% end
+x=[]; d2x=[]; tset=[]; dx=[];
+for time=t0_real:tf_real
+    tset=[tset  time];
+    traj_res=traj(p,time,n,t0_real,tf_real);
+    x=[x traj_res.x];
+    dx=[dx traj_res.dx];
+    d2x=[d2x traj_res.d2x];
+end
+
+
+figure
+
+% tmpAspect=daspect();
+% daspect(tmpAspect([1 2 2]))
+hold on 
+
+plot3(x0(1),x0(2),x0(3),'bo')
+plot3(xf(1),xf(2),xf(3),'ro')
+plot3(x(1,:), x(2,:), x(3,:))
+
+
+for time=linspace(t0_real,tf_real,20)
+
+traj_res=traj(p,time,n,t0_real,tf_real);
+
+%quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x),traj_res.d2x(2)/norm(traj_res.d2x),traj_res.d2x(3)/norm(traj_res.d2x),'Color','r','LineWidth',1,'MaxHeadSize',2);
+quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1),traj_res.d2x(2),traj_res.d2x(3),'Color','r','LineWidth',1,'MaxHeadSize',2);
+end
+
+figure
+title('ad')
+for i=1:3
+    subplot(3,1,i)
+    plot(tset,d2x(i,:))
+end
+
+figure
+for i=1:3
+    subplot(3,1,i)
+title('vd')
+    plot(tset,dx(i,:))
+end
 
 %% PLOTTING 
-% the original problem
-% x=[]; d2x=[]; tset=[];
-% for time=t0_real:tf_real
-%     tset=[tset  time];
-%     traj_res=get_flats(time);
-%     x=[x traj_res.x];
-%     d2x=[d2x traj_res.d2x];
-% end
-% 
-% 
-% figure
-% 
-% % tmpAspect=daspect();
-% % daspect(tmpAspect([1 2 2]))
-% hold on 
-% 
-% plot3(x(1,:), x(2,:), x(3,:))
-% 
-% 
-% for time=linspace(t0_real,tf_real,20)
-% 
-% traj_res=traj(p,time,n,t0,tf);
-% 
-% %quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x),traj_res.d2x(2)/norm(traj_res.d2x),traj_res.d2x(3)/norm(traj_res.d2x),'Color','r','LineWidth',1,'MaxHeadSize',2);
-% quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1),traj_res.d2x(2),traj_res.d2x(3),'Color','r','LineWidth',1,'MaxHeadSize',2);
-% end
-% 
-% figure
-% 
-% for i=1:3
-%     subplot(3,1,i)
-%     plot(tset,x(i,:))
-% end
-% 
+%the original problem
+x=[]; d2x=[]; tset=[];
+for time=t0_real:tf_real
+    tset=[tset  time];
+    traj_res=get_flats(time);
+    x=[x traj_res.x];
+    d2x=[d2x traj_res.d2x];
+end
+
+
+figure
+
+% tmpAspect=daspect();
+% daspect(tmpAspect([1 2 2]))
+hold on 
+
+plot3(x(1,:), x(2,:), x(3,:))
+
+
+for time=linspace(t0_real,tf_real,20)
+
+traj_res=traj(p,time,n,t0,tf);
+
+%quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1)/norm(traj_res.d2x),traj_res.d2x(2)/norm(traj_res.d2x),traj_res.d2x(3)/norm(traj_res.d2x),'Color','r','LineWidth',1,'MaxHeadSize',2);
+quiver3(traj_res.x(1),traj_res.x(2),traj_res.x(3),traj_res.d2x(1),traj_res.d2x(2),traj_res.d2x(3),'Color','r','LineWidth',1,'MaxHeadSize',2);
+end
+
+figure
+
+for i=1:3
+    subplot(3,1,i)
+    plot(tset,x(i,:))
+end
+
 

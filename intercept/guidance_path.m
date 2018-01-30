@@ -1,18 +1,18 @@
-function [pr_x,pr_y,pr_z]=guidance_path(pt_x_in,pt_y_in,pt_z_in,Xr,Vr,nr,g)
+function [pr_x,pr_y,pr_z]=guidance_path(pt_x_in,pt_y_in,pt_z_in,Xr,Vr,Ar,nr,g,FOV_tol)
     %% this function takes the poly coefficients of target traj and initial condition  
     
     n=nr; % poly order of robot 
-    w0=200; w1=3; w3=0.0005; 
+    w0=150; w1=50; w3=0.3; 
     xr=Xr(1); yr=Xr(2); zr=Xr(3); xr_dot=Vr(1); yr_dot=Vr(2); zr_dot=Vr(3);
-    
+    xr_ddot=Ar(1); yr_ddot=Ar(2); zr_ddot=Ar(3);
     % for the case : poly order of target < that of UAV
     pt_x=zeros(n+1,1); pt_x(1:length(pt_x_in))=pt_x_in; 
     pt_y=zeros(n+1,1); pt_y(1:length(pt_x_in))=pt_y_in;
     pt_z=zeros(n+1,1); pt_z(1:length(pt_x_in))=pt_z_in;
         
     % Compute time vector t s.t p(t)=p*t
-    t0=zeros(n+1,1); t1=zeros(n+1,1);
-    t0(1)=1; t1(2)=1;
+    t0=zeros(n+1,1); t1=zeros(n+1,1); t2=zeros(n+1,1);
+    t0(1)=1; t1(2)=1; t2(3)=1;
 
     % Compute the time integral matrix from 0 to 1
     T0=zeros(n+1,n+1);  
@@ -34,9 +34,9 @@ function [pr_x,pr_y,pr_z]=guidance_path(pt_x_in,pt_y_in,pt_z_in,Xr,Vr,nr,g)
 
     %% initial guess of polynomial 
     % Optimization (Output: polynomial scaled in [0 1])
-    pr_x=quadprog(w0*T0+w1*T1+w3*T3,-w0*T0*pt_x-w1*T1*pt_x,[],[],[t0'; t1'],[xr; xr_dot],[],[],[],options);
-    pr_y=quadprog(w0*T0+w1*T1+w3*T3,-w0*T0*pt_y-w1*T1*pt_y,[],[],[t0'; t1'],[yr; yr_dot],[],[],[],options);
-    pr_z=quadprog(w0*T0+w1*T1+w3*T3,-w0*T0*pt_z-w1*T1*pt_z,[],[],[t0'; t1'],[zr; zr_dot],[],[],[],options);
+    pr_x=quadprog(w0*T0+w1*T1+w3*T3,-w0*T0*pt_x-w1*T1*pt_x,[],[],[t0'; t1' ;t2'],[xr; xr_dot;xr_ddot],[],[],[],options);
+    pr_y=quadprog(w0*T0+w1*T1+w3*T3,-w0*T0*pt_y-w1*T1*pt_y,[],[],[t0'; t1'; t2'],[yr; yr_dot;yr_ddot],[],[],[],options);
+    pr_z=quadprog(w0*T0+w1*T1+w3*T3,-w0*T0*pt_z-w1*T1*pt_z,[],[],[t0'; t1'; t2'],[zr; zr_dot;zr_ddot],[],[],[],options);
     %% QCQP solve 
     pr=[pr_x ; pr_y ; pr_z]; % initial parameter 
     % obj function 
@@ -50,13 +50,16 @@ function [pr_x,pr_y,pr_z]=guidance_path(pt_x_in,pt_y_in,pt_z_in,Xr,Vr,nr,g)
     Aeq=blkdiag(t0',t0',t0'); beq=[xr yr zr]';
     % initial velocity 
     Aeq=[Aeq ; blkdiag(t1',t1',t1')]; beq=[beq [xr_dot yr_dot zr_dot]'];
+    % initial accel 
+    Aeq=[Aeq ; blkdiag(t2',t2',t2')]; beq=[beq [xr_ddot yr_ddot zr_ddot]'];
+
       
     %% Quadratic constraint (FOV)
     % FOV contraint apply time 
     
-    t_FOV_constr=linspace(0.2,1,6);
+    t_FOV_constr=linspace(0.1,1,5);
     
-    tol=repmat([5],1,length(t_FOV_constr));
+    tol=repmat([FOV_tol],1,length(t_FOV_constr));
     i=1;
     for t=t_FOV_constr
         % upper limit

@@ -10,7 +10,7 @@
 % [p1 p2 p3 p4 ... pn] pi=[pi1 pi2 pi3 pi4 ... pim] 
 % pij=[rij kji]  
 
-
+n=5;m=3;
 M=zeros(4*(n+1)*m);
 keyframe=zeros(4,5); % [r_T yaw_T]'*(# of keyframe)
 

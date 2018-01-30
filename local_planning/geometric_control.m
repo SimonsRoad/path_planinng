@@ -70,12 +70,31 @@ odeopts = odeset('RelTol', 1e-9, 'AbsTol', 1e-10) ;
 % odeopts = [] ;
 tspan=[t0_real tf_real];
 data.params.tspan=tspan;
-[t, x] = ode15s(@odefun_quadDynamics, tspan, x_init, odeopts, data) ;
+% % using ode function 
+% [t, x] = ode15s(@odefun_quadDynamics, tspan, x_init, odeopts, data) ;
+
+% no ode function integrater 
+
+
+x_history=[];
+x=x_init;
+N_sim=2000;
+t= linspace(tspan(1),tspan(2),N_sim);
+for t_=t
+    [dx,xd,f,M]=odefun_quadDynamics(t_,x,data);
+    x=x+dx;
+    x_history=[x_history x];
+end
+
+
 %%
 % Computing Various Quantities
 disp('Computing...') ;
 ind = round(linspace(1, length(t),length(t))) ;
 % ind = 0:length(t);
+dx=zeros(length(t),18);
+xd=zeros(length(t),21);
+
 for i = ind
    [dx_,xd_,f_,M_] =  odefun_quadDynamics(t(i),x(i,:)',data);
    dx(i,:)=dx_';
@@ -113,65 +132,65 @@ end
     xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
     
     
-%% attitude plotting 
-    figure;
-    ind = round(linspace(1, length(t), 1000));
-    ind_trplot=round(linspace(round(length(t)/1.2), length(t), 7));
-    hold on
-    % draw the attitude frame 
-    quiver3(x(i,1),x(i,2),x(i,3),5*zd(1),5*zd(2),5*zd(3),'Color','r','LineWidth',2,'MaxHeadSize',2)
-    text(x(i,1)+6*zd(1),x(i,2)+6*zd(2),x(i,3)+6*zd(3),'zb')
-
-    plot3(x(ind,1),x(ind,2),x(ind,3),'-g');
-    
-    for i=ind_trplot
-%         trplot(SE3(reshape(x(i,7:15),3,3),x(i,1:3)))\
-        draw_drone2(reshape(x(i,7:15),3,3),x(i,1:3),1,0.4,2)
-    end    
-    hold on
-%     grid on; title('trajectory');legend('traj','traj_d');%axis equal;
-    
-    xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
-    
-    
-       
-%% acceleration ratio
-   ind = round(linspace(round(length(t)/1.2), length(t), 1000)) ;
-
-    figure;
-    subplot(2,1,1);
-    
-    plot(t(ind),dx(ind,4)./dx(ind,5),'-g',t(ind),zd(1)/zd(2)*ones(1,1000),':r');
-    str = {'$$ \ddot{x}/\ddot{y} $$', '$$ {z}_{b1}/z_{b2}  $$'};
-    grid on; title(str{1},'Interpreter','latex');
-    legend(str, 'Interpreter','latex')
-
-    xlabel('time');ylabel('ratio');
-    axis([t(ind(1))  t(ind(end)) 0 10 ])
-    subplot(2,1,2);
-    plot(t(ind),((dx(ind,6)+9.81)./dx(ind,4)),'-g',t(ind),zd(3)/zd(1)*ones(1,1000),':r');
-    str = {'$$ \ddot{x}/(\ddot{z}+g) $$', '$$ {z}_{b1}/z_{b2}  $$'};
-
-    grid on; title(str{1},'Interpreter','latex');     legend(str, 'Interpreter','latex')%axis equal;
-    xlabel('time');ylabel('ratio');
-    
-    axis([t(ind(1))  t(ind(end)) 0 10 ])
-    
-%%
-        
-    
-    figure;
-    subplot(2,1,1);
-    plot(t(ind),psi_exL(ind));
-    grid on; title('position error');legend('psi-exL');
-    subplot(2,1,2);
-    plot(t(ind),psi_eaL(ind));
-    grid on; title('acceleration error');legend('psi-eaL');
- 
-% % ANIMATION
-% % =========
-% keyboard;
-% animate_3dquad(t(ind), x(ind,:),t(ind), xd(ind,:));
+% %% attitude plotting 
+%     figure;
+%     ind = round(linspace(1, length(t), 1000));
+%     ind_trplot=round(linspace(round(length(t)/1.2), length(t), 7));
+%     hold on
+%     % draw the attitude frame 
+%     quiver3(x(i,1),x(i,2),x(i,3),5*zd(1),5*zd(2),5*zd(3),'Color','r','LineWidth',2,'MaxHeadSize',2)
+%     text(x(i,1)+6*zd(1),x(i,2)+6*zd(2),x(i,3)+6*zd(3),'zb')
+% 
+%     plot3(x(ind,1),x(ind,2),x(ind,3),'-g');
+%     
+%     for i=ind_trplot
+% %         trplot(SE3(reshape(x(i,7:15),3,3),x(i,1:3)))\
+%         draw_drone2(reshape(x(i,7:15),3,3),x(i,1:3),1,0.4,2)
+%     end    
+%     hold on
+% %     grid on; title('trajectory');legend('traj','traj_d');%axis equal;
+%     
+%     xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
+%     
+%     
+%        
+% %% acceleration ratio
+%    ind = round(linspace(round(length(t)/1.2), length(t), 1000)) ;
+% 
+%     figure;
+%     subplot(2,1,1);
+%     
+%     plot(t(ind),dx(ind,4)./dx(ind,5),'-g',t(ind),zd(1)/zd(2)*ones(1,1000),':r');
+%     str = {'$$ \ddot{x}/\ddot{y} $$', '$$ {z}_{b1}/z_{b2}  $$'};
+%     grid on; title(str{1},'Interpreter','latex');
+%     legend(str, 'Interpreter','latex')
+% 
+%     xlabel('time');ylabel('ratio');
+%     axis([t(ind(1))  t(ind(end)) 0 10 ])
+%     subplot(2,1,2);
+%     plot(t(ind),((dx(ind,6)+9.81)./dx(ind,4)),'-g',t(ind),zd(3)/zd(1)*ones(1,1000),':r');
+%     str = {'$$ \ddot{x}/(\ddot{z}+g) $$', '$$ {z}_{b1}/z_{b2}  $$'};
+% 
+%     grid on; title(str{1},'Interpreter','latex');     legend(str, 'Interpreter','latex')%axis equal;
+%     xlabel('time');ylabel('ratio');
+%     
+%     axis([t(ind(1))  t(ind(end)) 0 10 ])
+%     
+% %%
+%         
+%     
+%     figure;
+%     subplot(2,1,1);
+%     plot(t(ind),psi_exL(ind));
+%     grid on; title('position error');legend('psi-exL');
+%     subplot(2,1,2);
+%     plot(t(ind),psi_eaL(ind));
+%     grid on; title('acceleration error');legend('psi-eaL');
+%  
+% % % ANIMATION
+% % % =========
+% % keyboard;
+% % animate_3dquad(t(ind), x(ind,:),t(ind), xd(ind,:));
 
 
 
