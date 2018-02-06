@@ -2,7 +2,7 @@ function [pr_x,pr_y,pr_z]=guidance_path(pt_x_in,pt_y_in,pt_z_in,Xr,Vr,Ar,nr,g,FO
     %% this function takes the poly coefficients of target traj and initial condition  
     
     n=nr; % poly order of robot 
-    w0=150; w1=50; w3=0.3; 
+    w0=150; w1=20; w3=0.1; 
     xr=Xr(1); yr=Xr(2); zr=Xr(3); xr_dot=Vr(1); yr_dot=Vr(2); zr_dot=Vr(3);
     xr_ddot=Ar(1); yr_ddot=Ar(2); zr_ddot=Ar(3);
     % for the case : poly order of target < that of UAV
@@ -51,34 +51,34 @@ function [pr_x,pr_y,pr_z]=guidance_path(pt_x_in,pt_y_in,pt_z_in,Xr,Vr,Ar,nr,g,FO
     % initial velocity 
     Aeq=[Aeq ; blkdiag(t1',t1',t1')]; beq=[beq [xr_dot yr_dot zr_dot]'];
     % initial accel 
-    Aeq=[Aeq ; blkdiag(t2',t2',t2')]; beq=[beq [xr_ddot yr_ddot zr_ddot]'];
+%     Aeq=[Aeq ; blkdiag(t2',t2',t2')]; beq=[beq [xr_ddot yr_ddot zr_ddot]'];
 
       
     %% Quadratic constraint (FOV)
     % FOV contraint apply time 
     
-    t_FOV_constr=linspace(0.1,1,5);
-    
-    tol=repmat([FOV_tol],1,length(t_FOV_constr));
-    i=1;
-    for t=t_FOV_constr
-        % upper limit
-        H{2*i-1}=2*blkdiag(t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)');
-        H{2*i-1}=(H{2*i-1}+H{2*i-1}')/2;
-        k{2*i-1}=-([pt_x'*t_vector(t,0,n)*t_vector(t,2,n)' pt_y'*t_vector(t,0,n)*t_vector(t,2,n)'...
-            pt_z'*t_vector(t,0,n)*t_vector(t,2,n)'-g*t_vector(t,0,n)'])';
-        d{2*i-1}=-g*t_vector(t,0,n)'*pt_z-tol(i);
-        
-        % lower limit
-        H{2*i}=-2*blkdiag(t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)');
-        H{2*i}=(H{2*i}+H{2*i}')/2;
-        k{2*i}=([pt_x'*t_vector(t,0,n)*t_vector(t,2,n)' pt_y'*t_vector(t,0,n)*t_vector(t,2,n)' ...
-            pt_z'*t_vector(t,0,n)*t_vector(t,2,n)'-g*t_vector(t,0,n)'])';
-        d{2*i}=g*t_vector(t,0,n)'*pt_z-tol(i);
-        
-        i=i+1;
-    end
-    
+%     t_FOV_constr=linspace(0.1,1,5);
+%     
+%     tol=repmat([FOV_tol],1,length(t_FOV_constr));
+%     i=1;
+%     for t=t_FOV_constr
+%         % upper limit
+%         H{2*i-1}=2*blkdiag(t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)');
+%         H{2*i-1}=(H{2*i-1}+H{2*i-1}')/2;
+%         k{2*i-1}=-([pt_x'*t_vector(t,0,n)*t_vector(t,2,n)' pt_y'*t_vector(t,0,n)*t_vector(t,2,n)'...
+%             pt_z'*t_vector(t,0,n)*t_vector(t,2,n)'-g*t_vector(t,0,n)'])';
+%         d{2*i-1}=-g*t_vector(t,0,n)'*pt_z-tol(i);
+%         
+%         % lower limit
+%         H{2*i}=-2*blkdiag(t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)',t_vector(t,2,n)*t_vector(t,0,n)');
+%         H{2*i}=(H{2*i}+H{2*i}')/2;
+%         k{2*i}=([pt_x'*t_vector(t,0,n)*t_vector(t,2,n)' pt_y'*t_vector(t,0,n)*t_vector(t,2,n)' ...
+%             pt_z'*t_vector(t,0,n)*t_vector(t,2,n)'-g*t_vector(t,0,n)'])';
+%         d{2*i}=g*t_vector(t,0,n)'*pt_z-tol(i);
+%         
+%         i=i+1;
+%     end
+%     
     %% QCQP solve
     pr=QCQP(Q,f,c,H,k,d,A,b,Aeq,beq,pr);
     pr_x=pr(1:n+1); pr_y=pr(n+2:2*n+2); pr_z=pr(2*n+3:3*n+3);

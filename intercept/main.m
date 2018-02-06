@@ -3,12 +3,12 @@ clc; clear all
    for section=1
     %% Setting target path 
     N_sim=200; % total simulation step 
-    t0=0; tf=10;
+    t0=0; tf=5;
     dt=(tf-t0)/N_sim;
     t_sim=linspace(t0,tf,N_sim); % global time clock 
     
     theta=linspace(-pi/2,pi/2,N_sim/2);
-    R=6;
+    R=8;
     xs=R*cos(theta)/3; ys=R*sin(theta); zs=-2*(t_sim(1:N_sim)-t_sim(1)).*(t_sim(1:N_sim)-t_sim(end))*(2/(tf-t0))^2;
     
     target_path=[xs;ys]; % positional history of target
@@ -38,6 +38,7 @@ clc; clear all
     %% check the target trajectory 
     figure
     set(gcf,'Position',[500 300 1200 600])
+    set(gcf,'defaultfigurecolor',[1 1 1])
     subplot(1,2,1)
     plot3(target_path(1,:),target_path(2,:),target_path(3,:),'k:','LineWidth',2)
     hold on 
@@ -45,7 +46,7 @@ clc; clear all
     title('Target path and UAV initial pose')
     xlabel('x'); ylabel('y'); zlabel('z')
     axis equal
-    axis_vector=[-3.5 10 -6 10 -5 5];
+    axis_vector=[-10 10 -15 30 -5 10];
     axis(axis_vector)
     grid on 
     %% Setting 
@@ -56,7 +57,7 @@ clc; clear all
     N_obs=10;
     obs_period=N_obs*dt;  % observation period 
     pred_period=1; % prediction period
-    pred_acc_error_tol=2;  % accumulated prediction error toloerance  
+    pred_acc_error_tol=1;  % accumulated prediction error toloerance  
    end
 %% Simulation start 
 X_target_history=[];
@@ -138,20 +139,21 @@ end
 
 %% Guidance
 for section=3 
-    n_pg=7; % poly order of guidance 
+    n_pg=8; % poly order of guidance 
     %% method 1 : converge position error and velocity error     
     if replan % if we have to replan the guidance path  
         if isempty(A_UAV_history)
             FOV_tol=0.3;
         else
             FOV_tol_tmp=col_norm((A_UAV_history+repmat([0 0 9.81]',1,length(A_UAV_history)))).*col_norm(X_target_history-X_UAV_history);       
-            FOV_tol=(mean(FOV_tol_tmp(max(end-N_obs,1):end))/max(FOV_tol_tmp(max(end-N_obs,1):end))/2)^3;            
+            FOV_tol=(mean(FOV_tol_tmp(max(end-N_obs,1):end))/max(FOV_tol_tmp(max(end-N_obs,1):end))/1.5)^3;            
         end
         
         % guidance path obtained 
         disp('path generation...')
-        [px_r,py_r,pz_r] = guidance_path(px_t,py_t,pz_t,Xr,Vr*pred_period,Ar*pred_period^2,n_pg,9.81*pred_period^2,FOV_tol);
-        
+        tic
+        [px_r,py_r,pz_r] = guidance_path(px_t,py_t,pz_t,Xr,Vr*pred_period,Ar*pred_period^2,n_pg,9.81*pred_period^2,FOV_tol)      ;  
+        toc
         % controller 
         disp('control input generation...')
         data.params.p=[px_r';py_r';pz_r'];
@@ -195,7 +197,7 @@ for section=3
     %% method 2 : using interception point 
 end
 %% check the necessity of replan and fitting 
-fprintf('current prediction error: %f\n',fitting_error)
+% fprintf('current prediction error: %f\n',fitting_error)
 
 if pred_acc_error_tol<fitting_error 
     do_fit=true; replan=true; 
@@ -208,11 +210,20 @@ for section=4
     % target path 
     subplot(1,2,2)
     plot(proj_history(1,2:end),proj_history(2,2:end),'ro-','LineWidth',2,'MarkerSize',2)
-    axis([-focal_l*tan(60) focal_l*tan(60) -focal_l*tan(60) focal_l*tan(60)])
+    hold on 
+    for fov=[5 10 30 50]
+        pnts=circle([0 0],focal_l*tan(fov*pi/180));
+        pnts=[pnts pnts(:,1)];
+        plot(pnts(1,:),pnts(2,:),'b-')
+        txt1 = strcat ('\leftarrow FOV=',num2str(fov*2));
+        text(pnts(1,fov),pnts(2,fov),txt1)
+    end
+    axis([-focal_l*tan(pi/3) focal_l*tan(pi/3) -focal_l*tan(pi/3) focal_l*tan(pi/3)])
     title('image plane (120deg FOV)')
 
     
     subplot(1,2,1)
+    view(47,13)
     title('traj')
 
     axis(axis_vector)
@@ -250,12 +261,11 @@ for section=4
     delete(children(1:end))
    
 end
-
     plot3(X_UAV_history(1,:),X_UAV_history(2,:),X_UAV_history(3,:),'ko-','LineWidth',1)
 
     plot3(X_target_history(1,:),X_target_history(2,:),X_target_history(3,:),'ro-','LineWidth',1)
 
-if norm(Xr-X_target)<0.4
+if norm(Xr-X_target)<0.5
     break 
 end
 
