@@ -1,7 +1,7 @@
 %% main file 
 % map representation resolution 
 map_res=0.5;
-
+addpath('C:\Users\junbs\Documents\path_planinng/robot-10.1/')
 % real map 
 map.origin=zeros(3,1);
 map.size=[20 20 20]; 
@@ -69,7 +69,7 @@ VoxMap.size=map.size;
 VoxMap.res=1; % resolution 
 VoxMap.mat=-1*ones(floor(map.size(1)/map_res)+1,floor(map.size(2)/map_res)+1,floor(map.size(3)/map_res)+1); % unknown=-1
 
-%% raycasting
+%% raycasting setting & sample point 
 
 % sensor spec
 FOV=2*pi/3;
@@ -85,15 +85,11 @@ end_pnts=[end_pnts end_pnts_tmp];
 for ang=linspace(0,2*pi,n_ang)
     end_pnts=[end_pnts rotx(ang)*end_pnts_tmp];
 end
-% 
-% plot3(end_pnts(1,:),end_pnts(2,:),end_pnts(3,:),'b*')
-% axis equal
-T=eye(4);
-T=p_obs;
-T.(1:3,1:3)=R_obs;
-end_pnts_real=T*end_pnts;
 
-%%
+
+
+
+%% raycasting from arbitrary pose
 figure
 title('mapping voxel')
 hold on
@@ -102,8 +98,34 @@ xlabel('x'); ylabel('y'); zlabel('z')
 Rplot(zeros(1,3),eye(3),1,2);
 axis([map.origin(1) map.origin(1)+map.size(1) map.origin(2) map.origin(2)+map.size(2) map.origin(3) map.origin(3)+map.size(2)])
 
+[i ,j ,k] = ind2sub(size(map.mat),find(map.mat == 1));
+search_zip=[i j k];
+for draw_idx=1:length(search_zip)
+    idx_x=search_zip(draw_idx,1); idx_y=search_zip(draw_idx,2); idx_z=search_zip(draw_idx,3);
+    p1=[map.origin(1)+map_res*(idx_x)-map_res/2 map.origin(2)+map_res*(idx_y)-map_res/2 map.origin(3)+map_res*(idx_z)-map_res/2];
+    p2=[map.origin(1)+map_res*(idx_x)+map_res/2  map.origin(2)+map_res*(idx_y)+map_res/2 map.origin(3)+map_res*(idx_z)+map_res/2];
+    draw_box(p1,p2,'g',0.2)
+end
 
-p1=2*ones(3,1); p2=[5 5 7]';
+
+% observer pose
+T=eye(4);
+T(1:3,4)=p_obs;
+T(1:3,1:3)=R_obs;
+% inspection point 
+end_pnts_observer=T*[end_pnts; ones(1,length(end_pnts))];
+end_pnts_observer=end_pnts_observer(1:3,:);
+end_pnts_observer=end_pnts_observer+p_obs'; % real inspection points
+% observer axis
+Rplot(p_obs,R_obs,2,2)
+plot3(end_pnts_observer(1,:),end_pnts_observer(2,:),end_pnts_observer(3,:),'b*')
+axis equal
+% raycasting from the observer
+
+for inspection=1:length(end_pnts_observer)
+    
+p1=p_obs'; p2=end_pnts_observer(:,inspection);
+plot3(p2(1),p2(2),p2(3),'r*')
 n_sample=10; % need to be tuned 
 samples_x=linspace(p1(1),p2(1),n_sample);
 samples_y=linspace(p1(2),p2(2),n_sample);
@@ -117,6 +139,12 @@ for sample_idx=1:n_sample
     idx_intersect_x=max(idx_intersect_x,1);
     idx_intersect_y=max(idx_intersect_y,1);
     idx_intersect_z=max(idx_intersect_z,1);
+    
+    
+    idx_intersect_x=min(idx_intersect_x,size(map.mat,1));
+    idx_intersect_y=min(idx_intersect_y,size(map.mat,1));
+    idx_intersect_z=min(idx_intersect_z,size(map.mat,1));
+    
     
     if map.mat(idx_intersect_x,idx_intersect_y,idx_intersect_z)==1
         break
@@ -132,12 +160,12 @@ VoxMap.mat(idx_intersect_x,idx_intersect_y,idx_intersect_z)=1;
 search_zip=[i j k];
 for draw_idx=1:size(search_zip,1)
     idx_x=search_zip(draw_idx,1); idx_y=search_zip(draw_idx,2); idx_z=search_zip(draw_idx,3);
-    p1=[map.origin(1)+map_res*(idx_x)-map_res/2 map.origin(2)+map_res*(idx_y)-map_res/2 map.origin(3)+map_res*(idx_z)-map_res/2];
-    p2=[map.origin(1)+map_res*(idx_x)+map_res/2  map.origin(2)+map_res*(idx_y)+map_res/2 map.origin(3)+map_res*(idx_z)+map_res/2];
-    draw_box(p1,p2,'c',0.9)
+    corner1=[map.origin(1)+map_res*(idx_x)-map_res/2 map.origin(2)+map_res*(idx_y)-map_res/2 map.origin(3)+map_res*(idx_z)-map_res/2];
+    corner2=[map.origin(1)+map_res*(idx_x)+map_res/2  map.origin(2)+map_res*(idx_y)+map_res/2 map.origin(3)+map_res*(idx_z)+map_res/2];
+    draw_box(corner1,corner2,'c',0.9)
 end
 
-
+end
 
 
 
