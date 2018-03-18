@@ -17,6 +17,8 @@ function [c,ceq,cgrad,ceqgrad]=nonlcon_PWL(X)
     
     azim=X(2); elev=X(3);
     
+    azim=mod(azim,2*pi);
+    
     azim_lower_idx=floor(azim/D_azim)+1;
     azim_upper_idx=azim_lower_idx+1;
     
