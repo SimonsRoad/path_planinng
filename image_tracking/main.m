@@ -11,18 +11,51 @@ x=reshape(x,[],1);
 y=reshape(y,[],1);
 z=reshape(z,[],1);
 
+% x=[x ; x+2*pi];
+% y=[y;y];
+% z=[z;z];
+% 
+% x=[x ; x-2*pi];
+% y=[y;y];
+% z=[z;z];
+% 
+% x=x/(2*pi);
+% y=(y-elev_min)/(elev_max-elev_min);
+
 global d_track nx ny
 d_track=4;
 nx=5; ny=4;
 
+
+
 %% visibility cost formulation
 
-%sf=fit([x y],z,'poly55');
-[sf,~,output]=fit([x y],z,'linearinterp');
+
+query_point=[0.5,0.8];
+x_train=[];
+y_train=[];
+z_train=[];
+for i=1:length(x)
+   
+    if norm([x(i) y(i)]-[query_point(1) query_point(2)])<0.5
+        x_train=[x_train; x(i)];
+        y_train=[y_train ;y(i)];
+        z_train=[z_train ;z(i)];
+        
+    end
+    
+    
+end
+
+% sf=fit([x_train y_train],z_train/4,'poly42');
+
+% [sf,~,output]=fit([x y],z,'linearinterp');
 % coeff=coeffvalues(sf);
 plot(sf,[x,y],z)
 xlabel('azim'); ylabel('elev')
 hold on 
+
+plot3(query_point(1),query_point(2),4,'r*');
 %plot3(query_azim_elev_pair(1),query_azim_elev_pair(2),4.1,'ro','LineWidth',3) % query point ? 
 costs=[];
 N_azim_sample=100; N_elev_sample=60;
@@ -32,20 +65,61 @@ elev_sample=linspace(elev_min,elev_max,N_elev_sample);
 [azim_mesh,elev_mesh]=meshgrid(azim_sample,elev_sample);
 azim_mesh=reshape(azim_mesh,[],1)+0.01*rand(N_azim_sample*N_elev_sample,1);
 elev_mesh=reshape(elev_mesh,[],1)+0.01*rand(N_azim_sample*N_elev_sample,1);
+%% cost3: quadratic based cost function 
 
-%% cost2: exponential based cost function 
-
-decaying_factor=0.2;
+decaying_factor=0.1;
+translational_set=[-2*pi 0 2*pi];
 
 for q_idx=1:length(azim_mesh)
    query_azim_elev_pair_normalized=[azim_mesh(q_idx)/(2*pi) (elev_mesh(q_idx)-elev_min)/(elev_max-elev_min)]';
     visibility_cost=0;
+    for translate=translational_set
     for i=1:length(x)
-        cur_azim=x(i); cur_elev=y(i);
+        cur_azim=x(i)+translate; cur_elev=y(i);
+        sampled_azim_elev_pair_normalized=[cur_azim/(2*pi) (cur_elev-elev_min)/(elev_max-elev_min)]';
         dist=norm(query_azim_elev_pair_normalized-[cur_azim/(2*pi) (cur_elev-elev_min)/(elev_max-elev_min)]');
-        visibility_cost=visibility_cost+exp(-dist/decaying_factor)*(d_track-z(i))^2;
+
+        visibility_cost=-dist^2;
     end
-    
+    end
+    costs=[costs visibility_cost]; 
+end
+
+%% result drawing
+figure()
+surf(reshape(azim_mesh,N_elev_sample,N_azim_sample),...
+    reshape(elev_mesh,N_elev_sample,N_azim_sample),...
+    reshape(costs,N_elev_sample,N_azim_sample))
+xlabel('azim'); ylabel('elev')
+
+%% cost2: exponential based cost function 
+
+costs=[];
+N_azim_sample=100; N_elev_sample=60;
+azim_sample=linspace(0,2*pi,N_azim_sample);
+elev_sample=linspace(elev_min,elev_max,N_elev_sample);
+
+[azim_mesh,elev_mesh]=meshgrid(azim_sample,elev_sample);
+azim_mesh=reshape(azim_mesh,[],1)+0.01*rand(N_azim_sample*N_elev_sample,1);
+elev_mesh=reshape(elev_mesh,[],1)+0.01*rand(N_azim_sample*N_elev_sample,1);
+
+
+decaying_factor=0.1;
+translational_set=[-2*pi 0 2*pi];
+
+for q_idx=1:length(azim_mesh)
+   query_azim_elev_pair_normalized=[azim_mesh(q_idx)/(2*pi) (elev_mesh(q_idx)-elev_min)/(elev_max-elev_min)]';
+    visibility_cost=0;
+    for translate=translational_set
+    for i=1:length(x)
+        cur_azim=x(i)+translate; cur_elev=y(i); cur_r=z(i);
+        sampled_azim_elev_pair_normalized=[cur_azim/(2*pi) (cur_elev-elev_min)/(elev_max-elev_min)]';
+        dist=norm(query_azim_elev_pair_normalized-[cur_azim/(2*pi) (cur_elev-elev_min)/(elev_max-elev_min)]');
+        if cur_r <1
+        visibility_cost=visibility_cost+exp(-dist/decaying_factor)*(d_track-z(i))^2;
+        end
+    end
+    end
     costs=[costs visibility_cost];
  
 end
