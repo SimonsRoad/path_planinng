@@ -18,7 +18,6 @@ fprintf( "visibility cost : %d\n",visibility_cost);
 fprintf("------------------------------- \n")
 
 res=translational_cost+tracking_distance_cost+visibility_cost;
-
 end
 
 

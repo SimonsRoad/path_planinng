@@ -21,7 +21,7 @@ d_track=4;
 
 elev_cur=atan2(p(3)-g(3),norm(p(1:2)-g(1:2)));
 azim_cur=atan2(p(2)-g(2),p(1)-g(1))+pi/3;
-
+azim_cur=pi;
 if azim_cur<0
    azim_cur=azim_cur+2*pi; 
 end
@@ -42,6 +42,15 @@ cost_fun_surf([0+(azim_cur-pi) 2*pi+(azim_cur-pi)],[elev_min elev_max],@(x) poly
 title('visibility cost')
 
 
+%% cost ? 
+sf=fit([x y],reshape(  mat,[],1),'cubicinterp')
+plot(sf)
+xlabel('azim')
+ylabel('elev')
+zlabel('d')
+title('observability hard constraint')
+
+
 %% optimization of total cost 
 global history
 options = optimoptions(@fmincon,'OutputFcn',@optim_logging_fun);
@@ -53,6 +62,7 @@ hold on
 plot(history.x(1,2),history.x(1,3),'ro')
 plot(history.x(:,2),history.x(:,3),'k*','LineWidth',3)
 plot(history.x(end,2),history.x(end,3),'r*')
+
 
 
 
