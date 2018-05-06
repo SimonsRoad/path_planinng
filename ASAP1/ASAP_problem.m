@@ -42,7 +42,7 @@ classdef ASAP_problem < handle
             
             layer_nodes={}; 
             node_pos={};
-            node_vis={};
+            node_vis=[];
             n_node=0;
             node_insertion_idx=1;
             
@@ -53,7 +53,7 @@ classdef ASAP_problem < handle
                 
                 % step1 : find P-SEDT of binary cast ray result
                 cut_ray_length=ASAP_problem.sample_ray_length(i); % this is the cut distance before calculation of P-SEDT
-                cast_result_binary=cast_result<cut_ray_length-0.1;
+                cast_result_binary=cast_result<cut_ray_length;
                 periodic_cast_result_binary=repmat(cast_result_binary,1,3);
                 D=signed_distance_transform(periodic_cast_result_binary);
                 D=D(ASAP_problem.N_azim+1:2*ASAP_problem.N_azim); 
@@ -100,7 +100,7 @@ classdef ASAP_problem < handle
                         % name of this node in the layer 
                         layer_nodes{node_insertion_idx}=strcat('t',num2str(t_idx),'/',num2str(n_node));
                         node_pos{node_insertion_idx}=end_pnt;
-                        node_vis{node_insertion_idx}=D(ray_idx);
+                        node_vis(node_insertion_idx)=D(ray_idx);
                         
                         node_insertion_idx=node_insertion_idx+1;
                         
@@ -165,11 +165,11 @@ classdef ASAP_problem < handle
                     name_node=strcat('t',num2str(t_idx),'/',num2str(connect_idx));
                     ASAP_problem.G=ASAP_problem.G.addnode(name_node);
                     dist=norm(ASAP_problem.tracker_pos-layer_poses{connect_idx});
-                    vis=layer_vises{connect_idx};
-                    weight=10*dist+(ASAP_problem.w_v)/vis;
-                    
+                    vis=layer_vises(connect_idx)/max(layer_vises);
+                    weight=dist^2+(ASAP_problem.w_v)/vis;
+                    if dist<3
                      ASAP_problem.G=ASAP_problem.G.addedge('t0',name_node,weight);
-                    
+                    end
                 end %connect 
             
             else % already exsit a layer
@@ -193,9 +193,9 @@ classdef ASAP_problem < handle
                     for idx=1:ASAP_problem.layer_info_num(t_idx)
                         prev_pose=prev_layer_poses{prev_idx};  cur_pose=cur_layer_poses{idx};
                         prev_name=strcat('t',num2str(t_idx-1),'/',num2str(prev_idx));
-                        dist=norm(prev_pose-cur_pose);   vis=layer_vises{idx};
-                        weight=dist+(ASAP_problem.w_v*t_idx^3)/vis;
-                        if dist <3
+                        dist=norm(prev_pose-cur_pose);   vis=layer_vises(idx)/max(layer_vises);
+                        weight=(dist)+(ASAP_problem.w_v*t_idx^2)/vis;
+                        if dist <5
                          ASAP_problem.G=ASAP_problem.G.addedge(prev_name,layer_names{idx},weight);                        
                         end
                     end                    
