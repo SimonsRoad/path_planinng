@@ -1,25 +1,22 @@
-%% spline generation 
+%% spline generation vs one chuck 
 % spline order 
-n=5;
+n=7;
 waypoint={};
 x0=[0 0];
 xdot0=[0 0];
 waypoint{1}=[1,2];
 waypoint{2}=[2 3];
+waypoint{3}=[3 1];
+% obstacles 
+obstacles={};
+obstacles{1}=[0.25 1.5];
+obstacles{2}=[1.5 2.5];
 
-
-
-%% plot 
-t=linspace(0,1,10);
-x=zeros(length(t),1);
-for i=1:length(t)
-    t_=t(i);
-    x(i)=p'*time_vector(t_,n,0);    
-end
-figure
-plot(t,x,'b-')
-
-
+w_d=1e+5; % weight for passing through the waypoints 
+sp=spline_path(n,x0,xdot0,waypoint,w_d,);
+sp.generate_spline(); 
+%sp.generate_one_poly();
+sp.path_plot();
 
 
 
