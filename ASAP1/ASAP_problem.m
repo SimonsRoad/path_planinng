@@ -20,7 +20,8 @@ classdef ASAP_problem < handle
         obj.dim=dim;
         obj.ws_range=range;
         obj.obs_list=obs_list;
-        obj.G=graph(); % empty graph 
+        obj.G=digraph();
+        %obj.G=graph(); % empty graph 
         obj.w_v=w_v;
         obj.layer_info_num=[];
         obj.layer_info_pose={};
@@ -146,7 +147,7 @@ classdef ASAP_problem < handle
                 num_layer=length(ASAP_problem.layer_info_num);
                 for connect_idx=1:num_node_last
                     node_name=strcat('t',num2str(num_layer),'/',num2str(connect_idx));
-                    ASAP_problem.G=ASAP_problem.G.addedge('tf',node_name,0.1);
+                    ASAP_problem.G=ASAP_problem.G.addedge(node_name,'tf',0.1);
                 end                    
         end
                 
@@ -167,7 +168,7 @@ classdef ASAP_problem < handle
                     dist=norm(ASAP_problem.tracker_pos-layer_poses{connect_idx});
                     vis=layer_vises(connect_idx)/max(layer_vises);
                     weight=dist^2+(ASAP_problem.w_v)/vis;
-                    if dist<3
+                    if dist<2
                      ASAP_problem.G=ASAP_problem.G.addedge('t0',name_node,weight);
                     end
                 end %connect 
@@ -194,8 +195,8 @@ classdef ASAP_problem < handle
                         prev_pose=prev_layer_poses{prev_idx};  cur_pose=cur_layer_poses{idx};
                         prev_name=strcat('t',num2str(t_idx-1),'/',num2str(prev_idx));
                         dist=norm(prev_pose-cur_pose);   vis=layer_vises(idx)/max(layer_vises);
-                        weight=(dist)+(ASAP_problem.w_v*t_idx^2)/vis;
-                        if dist <5
+                        weight=(dist)+(ASAP_problem.w_v*t_idx^3)/vis;
+                        if dist <6
                          ASAP_problem.G=ASAP_problem.G.addedge(prev_name,layer_names{idx},weight);                        
                         end
                     end                    
