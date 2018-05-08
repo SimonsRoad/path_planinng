@@ -88,7 +88,7 @@ end
 % options = optimoptions('quadprog','Display','off',);
 
 p=quadprog(C,[],A,b,Aeq,beq);
-%p=fmincon(@(x) x'*C*x,rand(3*(n+1),1),A,b,Aeq,beq);
+% p1=fmincon(@(x) x'*C*x,rand(3*(n+1),1),A,b,Aeq,beq);
 
 
 %% PLOTTING

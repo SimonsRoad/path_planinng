@@ -45,7 +45,7 @@ classdef spline_path < handle
             end
             
         tm=linspace(0,1,spline_path.n_seg+1); % this is the time passing through waypoints 
-        Qx=Q_a; Qy=Qx; Hx=zeros(1,n+1); Hy=Hx;
+        Qx=Q_j; Qy=Qx; Hx=zeros(1,n+1); Hy=Hx;
         w=spline_path.w_d;
        for seg=1:spline_path.n_seg            
             xd=spline_path.waypoints{seg}(1); yd=spline_path.waypoints{seg}(2);
@@ -105,7 +105,7 @@ classdef spline_path < handle
                 end
                 
                 % points to stay away from obstacle                    
-                N_sample=4;
+                N_sample=3;
                 t_obs_sample=linspace(0,1,N_sample+2);
                 t_obs_sample=t_obs_sample(2:end-1);
                                                
@@ -142,13 +142,32 @@ classdef spline_path < handle
                 beqx=[x_init(1) ; xdot_init(1) ; xd]; beqy=[x_init(2) ; xdot_init(2) ; yd];
                 
                % corridor ineq constraint (within the inflated box)
-               left_lower_corner= [min(x_init(1), xd)-1 min(x_init(2),yd)-1];                
-               right_upper_corner= [max(x_init(1), xd)+1 max(x_init(2),yd)+1];
+               % method 1 : box including the circle 
+%                left_lower_corner= boundary_center-[boundary_rad boundary_rad];
+%                right_upper_corner= boundary_center+[boundary_rad boundary_rad];
+               % method 2 : 
+               left_lower_corner= [min(xd,x_init(1)) min(yd,x_init(2))];
+               right_upper_corner=  [max(xd,x_init(1)) max(yd,x_init(2))];
                
-               
+               A=[];
+               bx=[]; by=[];               
+               for j=1:N_sample
+                   t=t_obs_sample(j);
+                   A=[A ; spline_path.t_vec(t,0)' ; -spline_path.t_vec(t,0)'];
+                   bx=[bx; right_upper_corner(1) ; -left_lower_corner(1)]; 
+                   by=[by; right_upper_corner(2) ; -left_lower_corner(2)]; 
+               end
+                options = optimoptions('quadprog','Display','iter-detailed');
+                obj_fun_x=@(p) 1e-6*p'*Qx*p+Hx*p;
+                obj_fun_y=@(p) 1e-6*p'*Qy*p+Hy*p;
+                px0=[spline_path.t_vec(0,0)' ; spline_path.t_vec(1,0)']\[x_init(1); xd];
+                py0=[spline_path.t_vec(0,0)' ; spline_path.t_vec(1,0)']\[x_init(2); yd];
                 
-                spline_path.px{seg}  = quadprog(2*Qx,Hx,[],[],Aeq,beqx);
-                spline_path.py{seg}  = quadprog(2*Qy,Hy,[],[],Aeq,beqy);                                        
+%                 spline_path.px{seg}  = fmincon(obj_fun_x,px0,A,bx,Aeq,beqx,[],[],[],options);
+%                 spline_path.py{seg}  = fmincon(obj_fun_y,py0,A,by,Aeq,beqy,[],[],[],options);                                        
+
+                spline_path.px{seg}  = quadprog(2*Qx,Hx,[],[],Aeq,beqx,[],[],px0,options);
+                spline_path.py{seg}  = quadprog(2*Qy,Hy,[],[],Aeq,beqy,[],[],py0,options);                                        
                 
             end
             
@@ -222,7 +241,7 @@ classdef spline_path < handle
                     x(i)=px_seg'*spline_path.t_vec(t_,0);    
                     y(i)=py_seg'*spline_path.t_vec(t_,0);
                 end                
-                plot(x,y,'g-')                               
+                plot(x,y,'gs-')                               
             end                        
         end
     
