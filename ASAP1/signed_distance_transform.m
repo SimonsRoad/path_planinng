@@ -16,7 +16,7 @@ end
 % figure(2)
 % imshow(edgecastRayResultBinary,'InitialMagnification',2000)
 
-M = imfill(castRayResultBinary,'holes');
+M =logical( imfill(castRayResultBinary,'holes'));
 D=bwdist(edgecastRayResultBinary);
 D(M)=-D(M);
     

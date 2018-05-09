@@ -27,7 +27,7 @@ classdef spline_path < handle
                     if i==4 && j==4
                         Q_j(i,j)=(i-1)*(i-2)*(i-3)*(j-1)*(j-2)*(j-3);
                     else
-                        Q_j(i,j)=(i-1)*(i-2)*(i-3)*(j-1)*(j-2)*(j-3)/(i+j-8);
+                        Q_j(i,j)=(i-1)*(i-2)*(i-3)*(j-1)*(j-2)*(j-3)/(i+j-7);
                     end
                 end
             end
@@ -70,13 +70,14 @@ classdef spline_path < handle
             Q_j=zeros(n+1);            
             for i=4:n+1
                 for j=4:n+1
-                    if i==4 && j==4
+                    if (i==4 && j==4)
                         Q_j(i,j)=(i-1)*(i-2)*(i-3)*(j-1)*(j-2)*(j-3);
                     else
-                        Q_j(i,j)=(i-1)*(i-2)*(i-3)*(j-1)*(j-2)*(j-3)/(i+j-8);
+                        Q_j(i,j)=(i-1)*(i-2)*(i-3)*(j-1)*(j-2)*(j-3)/(i+j-7);
                     end
                 end
             end
+            
             
             % spline generation 
             for seg=1:spline_path.n_seg
@@ -90,48 +91,48 @@ classdef spline_path < handle
                 % desired goal point of this segments 
                 xd=spline_path.waypoints{seg}(1); yd=spline_path.waypoints{seg}(2);                                        
 
-                % consider the obstacles
-                % if obstacles is within this boundary,  potential field 
-                boundary_rad=norm(x_init-[xd yd])/2;
-                boundary_center=(x_init+[xd yd])/2;
-                obstacle_seg={};
-                insert_idx=1;
-                for idx=1:length(spline_path.obstacle)
-                    obs_pos=spline_path.obstacle{idx};
-                    if norm(obs_pos-boundary_center)< boundary_rad                        
-                        obstacle_seg{insert_idx}=obs_pos;
-                        insert_idx=insert_idx+1;
-                    end                    
-                end
+%                 % consider the obstacles
+%                 % if obstacles is within this boundary,  potential field 
+%                 boundary_rad=norm(x_init-[xd yd])/2;
+%                 boundary_center=(x_init+[xd yd])/2;
+%                 obstacle_seg={};
+%                 insert_idx=1;
+%                 for idx=1:length(spline_path.obstacle)
+%                     obs_pos=spline_path.obstacle{idx};
+%                     if norm(obs_pos-boundary_center)< boundary_rad                        
+%                         obstacle_seg{insert_idx}=obs_pos;
+%                         insert_idx=insert_idx+1;
+%                     end                    
+%                 end
                 
-                % points to stay away from obstacle                    
-                N_sample=3;
+                % points to stay within the box                    
+                N_sample=10;
                 t_obs_sample=linspace(0,1,N_sample+2);
                 t_obs_sample=t_obs_sample(2:end-1);
                                                
                 % objective functions 
-                Q_xd = spline_path.t_vec(1,0)*spline_path.t_vec(1,0)';   Q_yd=Q_xd;
-                H_xd=-2*xd*(spline_path.t_vec(1,0))'; H_yd=-2*yd*(spline_path.t_vec(1,0))';
-                
-                for i=1:length(obstacle_seg)
-                    obs_pose=obstacle_seg{i};
-                    for j=1:N_sample
-                        Q_xo= spline_path.t_vec(t_obs_sample(j),0)*spline_path.t_vec(t_obs_sample(j),0)';
-                        Q_yo=Q_xo;
-                        H_xo=-2 * obs_pose(1) * spline_path.t_vec(t_obs_sample(j),0)'; 
-                        H_yo=-2 * obs_pose(2) * spline_path.t_vec(t_obs_sample(j),0)';                        
-                    end
-                end
-
-                w_d=spline_path.w_d;
-                w_o=spline_path.w_o;
+%                 Q_xd = spline_path.t_vec(1,0)*spline_path.t_vec(1,0)';   Q_yd=Q_xd;
+%                 H_xd=-2*xd*(spline_path.t_vec(1,0))'; H_yd=-2*yd*(spline_path.t_vec(1,0))';
+%                 
+%                 for i=1:length(obstacle_seg)
+%                     obs_pose=obstacle_seg{i};
+%                     for j=1:N_sample
+%                         Q_xo= spline_path.t_vec(t_obs_sample(j),0)*spline_path.t_vec(t_obs_sample(j),0)';
+%                         Q_yo=Q_xo;
+%                         H_xo=-2 * obs_pose(1) * spline_path.t_vec(t_obs_sample(j),0)'; 
+%                         H_yo=-2 * obs_pose(2) * spline_path.t_vec(t_obs_sample(j),0)';                        
+%                     end
+%                 end
+% 
+%                 w_d=spline_path.w_d;
+%                 w_o=spline_path.w_o;
                 
 %                 Qx=Q_j+w_d*Q_xd-w_o*Q_xo; Hx=w_d*H_xd-w_o*H_xo;                            
 %                 Qy=Q_j+w_d*Q_yd-w_o*Q_yo; Hy=w_d*H_yd-w_o*H_yo;
                  
                 
-                Qx=Q_j-w_o*Q_xo; Hx=-w_o*H_xo;
-                Qy=Q_j-w_o*Q_yo; Hy=-w_o*H_yo;
+%                 Qx=Q_j-w_o*Q_xo; Hx=-w_o*H_xo;
+%                 Qy=Q_j-w_o*Q_yo; Hy=-w_o*H_yo;
 
                 % optimization                     
 %                 A=[spline_path.t_vec(0,0)' ; spline_path.t_vec(0,1)' ];
@@ -146,8 +147,8 @@ classdef spline_path < handle
 %                left_lower_corner= boundary_center-[boundary_rad boundary_rad];
 %                right_upper_corner= boundary_center+[boundary_rad boundary_rad];
                % method 2 : 
-               left_lower_corner= [min(xd,x_init(1)) min(yd,x_init(2))]-[2 2];
-               right_upper_corner=  [max(xd,x_init(1)) max(yd,x_init(2))]+[2 2];
+               left_lower_corner= [min(xd,x_init(1)) min(yd,x_init(2))]-[0.5 0.5];
+               right_upper_corner=  [max(xd,x_init(1)) max(yd,x_init(2))]+[0.5 0.5];
                
                A=[];
                bx=[]; by=[];               
@@ -158,18 +159,10 @@ classdef spline_path < handle
                    by=[by; right_upper_corner(2) ; -left_lower_corner(2)]; 
                end
                 options = optimoptions('quadprog','Display','iter-detailed');
-                obj_fun_x=@(p) p'*Qx*p+Hx*p;
-                obj_fun_y=@(p) p'*Qy*p+Hy*p;
-                px0=[spline_path.t_vec(0,0)' ; spline_path.t_vec(1,0)']\[x_init(1); xd];
-                py0=[spline_path.t_vec(0,0)' ; spline_path.t_vec(1,0)']\[x_init(2); yd];
+
                 
-                scale=30;
-%                 
-%                 spline_path.px{seg}  = fmincon(obj_fun_x,px0,A,bx,Aeq,beqx,-scale*ones(n+1,1),scale*ones(n+1,1),[]);
-%                 spline_path.py{seg}  = fmincon(obj_fun_y,py0,A,by,Aeq,beqy,-scale*ones(n+1,1),scale*ones(n+1,1),[]);                                        
-% 
-                spline_path.px{seg}  = quadprog(2*Qx,Hx,A,bx,Aeq,beqx,[],[],px0,options);
-                spline_path.py{seg}  = quadprog(2*Qy,Hy,A,by,Aeq,beqy,[],[],py0,options);                                        
+                spline_path.px{seg}  = quadprog(2*Q_j,zeros(1,n+1),A,bx,Aeq,beqx,[],[],[],options);
+                spline_path.py{seg}  = quadprog(2*Q_j,zeros(1,n+1),A,by,Aeq,beqy,[],[],[],options);                                        
                 
             end
             
