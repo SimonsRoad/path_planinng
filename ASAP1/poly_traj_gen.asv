@@ -63,21 +63,22 @@ function sum_jerk=poly_traj_gen(v_set,n_poly,x0,x0dot,waypoints,path_manager)
         % generate guidance points 
         Nx_grid=15;
         Ny_grid=15;
-        N_guide=2;
+        N_guide=1;
         guidance_pnts=path_manager.guidance_waypoint(x_init,[xd yd],left_lower_corner,right_upper_corner,Nx_grid,Ny_grid,N_guide);
         
-        t_guide=linspace(0,1,N_guide+2);
-        t_guide=t_guide(2:end-1);
         
-        for j=1:N_guide
-            Qgx= path_manager.t_vec(n,t_guide(j),0)*path_manager.t_vec(n,t_guide(j),0)';
-            Qgy=Qgx;
-            Hgx=-2 * guidance_pnts(j,1) * path_manager.t_vec(n,t_guide(j),0)'; 
-            Hgy=-2 * guidance_pnts(j,2) * path_manager.t_vec(n,t_guide(j),0)';                        
-        end        
-        w=1e+3;                
+        for j=1:N_sample
+            Q_xo= path_manager.t_vec(t_obs_sample(j),0)*path_manager.t_vec(t_obs_sample(j),0)';
+            Q_yo=Q_xo;
+            H_xo=-2 * obs_pose(1) * path_manager.t_vec(t_obs_sample(j),0)'; 
+            H_yo=-2 * obs_pose(2) * path_manager.t_vec(t_obs_sample(j),0)';                        
+        end
         
-        Qgx=Qgx*w; Qgy=Qgy*w; Hgx=Hgx*w; Hgy=Hgy*w;
+        
+        
+        
+                
+                
         %% optimization 
         
         % waypoint equality constraints 
@@ -86,8 +87,8 @@ function sum_jerk=poly_traj_gen(v_set,n_poly,x0,x0dot,waypoints,path_manager)
         
                 
         options = optimoptions('quadprog','Display','final');
-        [path_manager.px{seg},seg_jerk_x]  = quadprog(2*Q+2*Qgx,Hgx,[],[],Aeq,beqx,[],[],[],options);
-        [path_manager.py{seg},seg_jerk_y]  = quadprog(2*Q+2*Qgy,Hgy,[],[],Aeq,beqy,[],[],[],options);     
+        [path_manager.px{seg},seg_jerk_x]  = quadprog(2*Q,zeros(1,n+1),[],[],Aeq,beqx,[],[],[],options);
+        [path_manager.py{seg},seg_jerk_y]  = quadprog(2*Q,zeros(1,n+1),[],[],Aeq,beqy,[],[],[],options);     
         
         sum_jerk=sum_jerk+seg_jerk_x+seg_jerk_y;            
     end
