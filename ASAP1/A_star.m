@@ -16,10 +16,46 @@ MAP(occu_map)=-1;
 xTarget=floor((x0(1)-lower_left(1))/dx); 
 yTarget=floor((x0(2)-lower_left(2))/dy);
 
+if xTarget<1
+    xTarget=1;
+end
+
+if xTarget>Nx
+    xTarget=Nx;
+end
+
+if yTarget<1
+    yTarget=1;
+end
+
+if yTarget>Ny
+    yTarget=Ny;
+end
+
+
+
 MAP(xTarget,yTarget)=0;%Initialize MAP with location of the target
 
 xStart=floor((xf(1)-lower_left(1))/dx);%Starting Position
 yStart=floor((xf(2)-lower_left(2))/dy);%Starting Position
+
+if xStart<1
+    xStart=1;
+end
+
+if xStart>Nx
+    xStart=Nx;
+end
+
+if yStart<1
+    yStart=1;
+end
+
+if yStart>Ny
+    yStart=Ny;
+end
+
+
 
 MAP(xStart,yStart)=1;
 MAX_X=Nx; MAX_Y=Ny;

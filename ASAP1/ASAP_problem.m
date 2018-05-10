@@ -13,6 +13,7 @@ classdef ASAP_problem < handle
         sample_ray_length; 
         max_ray_length; % maximum length of ray to be checked     
         azim_set; % a bit redundant, but usefel 
+        PM; % this path manager will generate traj connecting each view points also avoid obstacles 
     end
     
     methods
@@ -31,6 +32,7 @@ classdef ASAP_problem < handle
         obj.max_ray_length=max_ray_length;
         obj.sample_ray_length=sample_ray_length; 
         obj.azim_set=linspace(0,2*pi,N_azim);
+        obj.PM=path_manager(obs_list);        
         end
         
         %% High level methods
@@ -132,6 +134,7 @@ classdef ASAP_problem < handle
         function graph_init(ASAP_problem,cur_tracker_pos)
             % the graph will be constructed with the cur_tracker_pose as
             % t0 points     
+            ASAP_problem.G=digraph();
             cur_tracker_pos=reshape(cur_tracker_pos,1,2);
             ASAP_problem.tracker_pos=cur_tracker_pos;
             ASAP_problem.layer_info_num=[];  
@@ -168,7 +171,7 @@ classdef ASAP_problem < handle
                     dist=norm(ASAP_problem.tracker_pos-layer_poses{connect_idx});
                     vis=layer_vises(connect_idx)/max(layer_vises);
                     weight=dist^2+(ASAP_problem.w_v)/vis;
-                    if dist<2
+                    if dist<6
                      ASAP_problem.G=ASAP_problem.G.addedge('t0',name_node,weight);
                     end
                 end %connect 

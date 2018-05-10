@@ -13,7 +13,7 @@ classdef path_manager < handle
             obj.py={};            
         end    
         %% path generation  ( poly_traj_gen needed ! ) 
-        function [xs,vs]=traj_gen(path_manager,x0,xdot0,waypoints,N_iter)            
+        function [xs,vs]=traj_gen(path_manager,x0,xdot0,waypoints)            
             % this function generate trajectory. the polynomial coeff can
             % be found in path_manager (px py) in form of cell 
             % x0, xdot0 ( 1 x 2) / waypoints ( N x 2)
@@ -50,29 +50,11 @@ classdef path_manager < handle
             lower_limit=-1.5;
             len=length(vset);
 
-            options = optimoptions('fmincon','Algorithm','SQP','MaxFunctionEvaluations',N_iter);
+            options = optimoptions('fmincon','Algorithm','SQP','MaxFunctionEvaluations',100);
             fmincon(sum_cost,vset,[],[],[],[],lower_limit*ones(len,1),upper_limit*ones(len,1),[],options);  
             
-            xs=[];
-            vs=[];
-            % for each segment, we construct the path 
-            for seg=1:length(path_manager.px)
-                px_seg=path_manager.px{seg};
-                py_seg=path_manager.py{seg};    
-                n_poly=length(px_seg)-1;
-                t=linspace(0,1,20);
-                x=zeros(length(t),1);
-                y=x; vx=y; vy=vx;
-                for i=1:length(t)
-                    t_=t(i);
-                    x(i)=px_seg'*path_manager.t_vec(n_poly,t_,0);    
-                    y(i)=py_seg'*path_manager.t_vec(n_poly,t_,0);
-                    vx(i)=px_seg'*path_manager.t_vec(n_poly,t_,1);
-                    vy(i)=py_seg'*path_manager.t_vec(n_poly,t_,1);                                        
-                end                                                                     
-                xs=[xs ; [x y]];
-                vs=[vs ; [vx vy]];
-            end      
+            
+            
             
 
         end

@@ -59,12 +59,16 @@ function sum_jerk=poly_traj_gen(v_set,n_poly,x0,x0dot,waypoints,path_manager)
         % box considered for obstacle avoidance 
         left_lower_corner= [min(xd,x_init(1)) min(yd,x_init(2))]-[0.3 0.3];
         right_upper_corner=  [max(xd,x_init(1)) max(yd,x_init(2))]+[0.3 0.3];
+                       
         
         % generate guidance points 
         Nx_grid=15;
         Ny_grid=15;
-        N_guide=2;
+        N_guide=1;
         guidance_pnts=path_manager.guidance_waypoint(x_init,[xd yd],left_lower_corner,right_upper_corner,Nx_grid,Ny_grid,N_guide);
+        
+        if ~isempty(guidance_pnts)
+        
         
         t_guide=linspace(0,1,N_guide+2);
         t_guide=t_guide(2:end-1);
@@ -78,6 +82,12 @@ function sum_jerk=poly_traj_gen(v_set,n_poly,x0,x0dot,waypoints,path_manager)
         w=1e+3;                
         
         Qgx=Qgx*w; Qgy=Qgy*w; Hgx=Hgx*w; Hgy=Hgy*w;
+        
+        else
+            
+        Qgx=zeros(n+1); Qgy=Qgx; Hgx=zeros(1,n+1); Hgy=Hgx;
+            
+        end
         %% optimization 
         
         % waypoint equality constraints 
@@ -85,7 +95,7 @@ function sum_jerk=poly_traj_gen(v_set,n_poly,x0,x0dot,waypoints,path_manager)
         beqx=[x_init(1) ; xdot_init(1) ; xd ; xdotd]; beqy=[x_init(2) ; xdot_init(2) ; yd ; ydotd];
         
                 
-        options = optimoptions('quadprog','Display','final');
+        options = optimoptions('quadprog','Display','off');
         [path_manager.px{seg},seg_jerk_x]  = quadprog(2*Q+2*Qgx,Hgx,[],[],Aeq,beqx,[],[],[],options);
         [path_manager.py{seg},seg_jerk_y]  = quadprog(2*Q+2*Qgy,Hgy,[],[],Aeq,beqy,[],[],[],options);     
         
@@ -93,8 +103,5 @@ function sum_jerk=poly_traj_gen(v_set,n_poly,x0,x0dot,waypoints,path_manager)
     end
     
 
-    
-    
-
-
+   
 end
