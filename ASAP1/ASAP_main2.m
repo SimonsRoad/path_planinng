@@ -42,10 +42,16 @@ for t_step=2: N_step
         cur_target_pos=target_path(t_step,:);        
         dx=cur_target_pos(1)-prev_target_pos(1);
         dy=cur_target_pos(2)-prev_target_pos(2);        
-        asap.graph_init(tracker_position);               
+        asap.graph_init(tracker_position);     
+        target_pred=[cur_target_pos];
         for horz=1:N_pred
-            asap.graph_insertion(cur_target_pos+[dx*horz dy*horz])
+            target_pred=[target_pred ; cur_target_pos+[dx*horz dy*horz]];
         end                
+        
+        for i=1:N_pred+1
+            asap.graph_insertion(target_pred(i,:))
+        end
+        
         asap.graph_wrapper();       
         waypoint=asap.path_proposal(); 
         N_iter=50;
@@ -68,26 +74,26 @@ for t_step=2: N_step
 end
 %% plot 
 
-figure
-asap.mapplot % obstacle 
-hold on
-plot(xs(:,1),xs(:,2),'g-','LineWidth',4)
-
-plot(target_path(:,1),target_path(:,2),'r*-');
-plot(tracker_position(1),tracker_position(2),'ko','LineWidth',2);% asap.mapplot
-
-% candidates 
-shapes={'s','d','*','x'};
-
-for i=1:length(asap.layer_info_pose)
-    for j=1:length(asap.layer_info_pose{i})
-        candid_pose=asap.layer_info_pose{i}{j};        
-        plot(candid_pose(1),candid_pose(2),strcat('k',shapes{i}),'MarkerSize',6)
-    end
-end
-
-plot([tracker_position(1); path(:,1)],[tracker_position(2) ;path(:,2)],'ms','MarkerSize',12,'LineWidth',2);
-
+% figure
+% asap.mapplot % obstacle 
+% hold on
+% plot(xs(:,1),xs(:,2),'g-','LineWidth',4)
+% 
+% plot(target_path(:,1),target_path(:,2),'r*-');
+% plot(tracker_position(1),tracker_position(2),'ko','LineWidth',2);% asap.mapplot
+% 
+% % candidates 
+% shapes={'s','d','*','x'};
+% 
+% for i=1:length(asap.layer_info_pose)
+%     for j=1:length(asap.layer_info_pose{i})
+%         candid_pose=asap.layer_info_pose{i}{j};        
+%         plot(candid_pose(1),candid_pose(2),strcat('k',shapes{i}),'MarkerSize',6)
+%     end
+% end
+% 
+% plot([tracker_position(1); path(:,1)],[tracker_position(2) ;path(:,2)],'ms','MarkerSize',12,'LineWidth',2);
+% 
 
 
 

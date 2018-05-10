@@ -170,7 +170,13 @@ classdef ASAP_problem < handle
                     ASAP_problem.G=ASAP_problem.G.addnode(name_node);
                     dist=norm(ASAP_problem.tracker_pos-layer_poses{connect_idx});
                     vis=layer_vises(connect_idx)/max(layer_vises);
-                    weight=dist^2+(ASAP_problem.w_v)/vis;
+                    
+                    if isnan(vis) || (vis==0)
+                        weight=dist^2;
+                    else
+                        weight=dist^2+(ASAP_problem.w_v)/vis;
+                    end
+                    
                     if dist<6
                      ASAP_problem.G=ASAP_problem.G.addedge('t0',name_node,weight);
                     end
@@ -198,7 +204,11 @@ classdef ASAP_problem < handle
                         prev_pose=prev_layer_poses{prev_idx};  cur_pose=cur_layer_poses{idx};
                         prev_name=strcat('t',num2str(t_idx-1),'/',num2str(prev_idx));
                         dist=norm(prev_pose-cur_pose);   vis=layer_vises(idx)/max(layer_vises);
-                        weight=(dist)+(ASAP_problem.w_v*t_idx^3)/vis;
+                        if isnan(vis) || (vis==0)
+                            weight=dist^2;
+                        else
+                            weight=dist^2+(ASAP_problem.w_v)/vis;
+                        end
                         if dist <6
                          ASAP_problem.G=ASAP_problem.G.addedge(prev_name,layer_names{idx},weight);                        
                         end
