@@ -3,33 +3,105 @@ classdef path_manager < handle
     properties 
         px; 
         py;
-        obstacles;   % cell of obstacle    
+        obstacles;   % cell of obstacle 
+        Q_j; % jerk matrix 
+        Q_a; % acceleration matrix 
+        path_param; % params ={inflation rate, box extension }
     end
     %% methods 
     methods        
-        function obj=path_manager(obstacles)
+        function obj=path_manager(obstacles,path_param)            
             obj.obstacles=obstacles;
             obj.px={};
-            obj.py={};            
+            obj.py={};        
+            obj.path_param=path_param;
         end    
+        
+        function cost_mat_gen(path_manager,n)             % COMPUTE JERK OR ACCEL MATRIX 
+            Q_j=zeros(n+1);            
+            for i=4:n+1
+                for j=4:n+1
+                    if i==4 && j==4
+                        Q_j(i,j)=(i-1)*(i-2)*(i-3)*(j-1)*(j-2)*(j-3);
+                    else
+                        Q_j(i,j)=(i-1)*(i-2)*(i-3)*(j-1)*(j-2)*(j-3)/(i+j-7);
+                    end
+                end
+            end
+
+            Q_a=zeros(n+1);            
+            for i=3:n+1
+                for j=3:n+1
+                    if i==3 && j==3
+                        Q_a(i,j)=(i-1)*(i-2)*(j-1)*(j-2);
+                    else
+                        Q_a(i,j)=(i-1)*(i-2)*(j-1)*(j-2)/(i+j-5);
+                    end
+                end
+            end            
+            path_manager.Q_a=Q_a;
+            path_manager.Q_j=Q_j;                  
+                   
+        end
+        
+        
+        function obs_update(path_manager,obs)
+            N_obs_cur=length(path_manager.obstacles);
+            path_manager.obstacles{N_obs_cur+1}=obs;            
+        end
+        
         %% path generation  ( poly_traj_gen needed ! ) 
-        function [xs,vs]=traj_gen(path_manager,x0,xdot0,waypoints,N_iter)            
+        function [xs,vs,xs_seg,vs_seg]=traj_gen(path_manager,x0,xdot0,waypoints,N_iter)            
             % this function generate trajectory. the polynomial coeff can
             % be found in path_manager (px py) in form of cell 
             % x0, xdot0 ( 1 x 2) / waypoints ( N x 2)
+            
+           % OUTPUTS
+           %%%%%%%%%%%%%%%%%%%%%
+           % xs,vs : stats along the whole trajectory 
+           % xs_seg, v_seg : states of each segment
+           %%%%%%%%%%%%%%%%%%%%%
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % TUNEING : polynomial order (n) / max_iter for optimization /
             % bounding value of vset 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
-            % parsing 
+            %% PARSING
             N_waypoints=size(waypoints,1);
             waypoint={}; % waypoint is cell (~= waypoints)
             for i=1:N_waypoints
                 waypoint{i}=waypoints(i,:);
             end
-                      
+            
+            
+            %%  GUIDANCE WAYPOINTS 
+            guidance_waypoint={};             
+            % Too big extension causes unnecessary guindace points
+            Nx_grid=25;
+            Ny_grid=25;
+            N_guide=path_manager.path_param.N_guide;
+
+            for i=1:N_waypoints
+                if i==1
+                    % For each segment 
+                    x_init=x0; xd=waypoint{i}(1); yd=waypoint{i}(2);                   
+                else                                    
+                    x_init=waypoint{i-1}; xd=waypoint{i}(1); yd=waypoint{i}(2);
+                end
+                    
+                    % Let's consider circle 
+                    center=(x_init+[xd yd])/2;
+                    rad=norm([xd yd]-x_init)/2;
+%                     left_lower_corner= [min(xd,x_init(1)) min(yd,x_init(2))]-box_extension*[1 1];
+%                     right_upper_corner=  [max(xd,x_init(1)) max(yd,x_init(2))]+box_extension*[1 1];    
+                    left_lower_corner=center-(rad+path_manager.path_param.box_extension)*[1 1];
+                    right_upper_corner=center+(rad+path_manager.path_param.box_extension)*[1 1];
+                    % Generate path using A* for guidance points
+                    guidance_pnts=path_manager.guidance_waypoint(x_init,[xd yd],left_lower_corner,right_upper_corner,Nx_grid,Ny_grid,N_guide);
+                    guidance_waypoint{i}=guidance_pnts;                    
+            end
+            %% OPTIMIZATION 
             n=7; % poly order 
             vset=(waypoint{1}-x0)';
             for i=2:length(waypoint)
@@ -37,7 +109,8 @@ classdef path_manager < handle
             end
 
             % function handle
-            sum_cost=@(v) poly_traj_gen(v,n,x0,xdot0,waypoint,path_manager);
+            path_manager.cost_mat_gen(n); % This computes jerk and acceleration matrix 
+            sum_cost=@(v) poly_traj_gen(v,n,x0,xdot0,waypoint,guidance_waypoint,path_manager);
 
             %%%%%% two-stage optimization %%%%%%%%%%%%%%%%%
             % inner : fast QP 
@@ -52,9 +125,9 @@ classdef path_manager < handle
 
             options = optimoptions('fmincon','Algorithm','SQP','MaxFunctionEvaluations',N_iter);
             fmincon(sum_cost,vset,[],[],[],[],lower_limit*ones(len,1),upper_limit*ones(len,1),[],options);  
-            
-            xs=[];
-            vs=[];
+            %% PATH POINTS SAVE 
+            xs=[]; xs_seg={};
+            vs=[]; vs_seg={};
             % for each segment, we construct the path 
             for seg=1:length(path_manager.px)
                 px_seg=path_manager.px{seg};
@@ -72,6 +145,8 @@ classdef path_manager < handle
                 end                                                                     
                 xs=[xs ; [x y]];
                 vs=[vs ; [vx vy]];
+                xs_seg{seg}=[x y];
+                vs_seg{seg}=[vx vy];
             end      
             
 
@@ -165,7 +240,7 @@ classdef path_manager < handle
                             
            SEDT=signed_distance_transform(map); 
            % threshold should be turned 
-           map=(SEDT<3);               
+           map=(SEDT<(Nx+Ny)/2*path_manager.path_param.inflate_rate);               
                      
         end
                 
@@ -179,8 +254,7 @@ classdef path_manager < handle
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % TUNEING : bedding size             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
-            
+                        
             waypoints=[];            
             inflated_map=path_manager.obs_inflation(lower_left_corner,upper_right_corner,Nx,Ny);            
             if sum(sum(inflated_map))==0

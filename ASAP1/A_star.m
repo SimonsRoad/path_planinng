@@ -34,6 +34,8 @@ end
 
 
 
+
+
 MAP(xTarget,yTarget)=0;%Initialize MAP with location of the target
 
 xStart=floor((xf(1)-lower_left(1))/dx);%Starting Position
@@ -201,7 +203,6 @@ else
  disp('Sorry, No path exists to the Target!');
 %  uiwait(h,5);
 end
-
 
 local_path=[lower_left(1)+Optimal_path(:,1)*dx lower_left(2)+Optimal_path(:,2)*dy];
 

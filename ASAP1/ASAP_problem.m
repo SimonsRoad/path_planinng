@@ -17,7 +17,7 @@ classdef ASAP_problem < handle
     end
     
     methods
-        function obj=ASAP_problem(dim,range,obs_list,w_v,N_stride,N_azim,max_ray_length,sample_ray_length)
+        function obj=ASAP_problem(dim,range,obs_list,w_v,N_stride,N_azim,max_ray_length,sample_ray_length,path_param)
         obj.dim=dim;
         obj.ws_range=range;
         obj.obs_list=obs_list;
@@ -32,7 +32,7 @@ classdef ASAP_problem < handle
         obj.max_ray_length=max_ray_length;
         obj.sample_ray_length=sample_ray_length; 
         obj.azim_set=linspace(0,2*pi,N_azim);
-        obj.PM=path_manager(obs_list);        
+        obj.PM=path_manager(obs_list,path_param);        
         end
         
         %% High level methods
