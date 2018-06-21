@@ -2,14 +2,39 @@ addpath('../')
 load('castRayResult.txt')
 SEDT=signed_distance_transform(castRayResult);
 
-%% DOG
+%% DOG + color histogram 
+% DOG generation 
 filt1=imgaussfilt(SEDT,1.6);
 filt2=imgaussfilt(SEDT,1.5);
-DOG=filt1-filt2;
+DOG=filt2-filt1;
 
 figure()
-surf(DOG)
+subplot(2,1,1)
+surf(SEDT)
+title('SEDT')
 colorbar
+
+subplot(2,1,2)
+surf(DOG)
+title('DOG')
+colorbar
+
+% histogram 
+[N,edges,bin]=histcounts(DOG(:));
+negative_edges=find(edges<0);
+negative_bins=max(negative_edges)-1;
+bin_selected=ceil(negative_bins*0.5); % we select nodes until this cluster
+bin=reshape(bin,size(DOG));
+[r,c]=find(bin<=bin_selected);
+
+%% plotting
+figure
+title('local extrema')
+surf(SEDT)
+hold on 
+scatter3(c,r,10*ones(length(c),1),'r*')
+
+
 
 %% sobel filter 
 h_sobel=fspecial('sobel');
