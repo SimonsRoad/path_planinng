@@ -257,7 +257,7 @@ classdef ASAP_problem < handle
             % this funciton cast N rays from the given target position 
             % input : light source ( D x 1) / max_distance () /
             % N_azim : 2pi / N_stride : check points of a ray           
-            % output : 1 x N his distance result 
+            % output : 1 x N hit distance result 
             N_azim=ASAP_problem.N_azim;
             N_stride=ASAP_problem.N_stride;
             max_distance=ASAP_problem.max_ray_length;
