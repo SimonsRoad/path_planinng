@@ -5,7 +5,7 @@ SEDT=signed_distance_transform(castRayResult);
 %% DOG + color histogram 
 % DOG generation 
 filt1=imgaussfilt(SEDT,1.6);
-filt2=imgaussfilt(SEDT,1.5);
+filt2=imgaussfilt(SEDT,1.4);
 DOG=filt2-filt1;
 
 figure()
@@ -27,12 +27,32 @@ bin_selected=ceil(negative_bins*0.5); % we select nodes until this cluster
 bin=reshape(bin,size(DOG));
 [r,c]=find(bin<=bin_selected);
 
+%% YoungSuk
+
+clear;
+load SEDT.mat
+% scores = SEDT(:);
+num_keypoints = 4;
+r = 4;
+
+keypoints_coord = zeros(2, num_keypoints);
+temp_scores = padarray(SEDT, [r, r]);
+for i = 1:num_keypoints
+    [~, kp] = max(temp_scores(:));
+    [row_kp, col_kp] = ind2sub(size(temp_scores), kp);
+    kp = [row_kp; col_kp];
+    
+    keypoints_coord(:, i) = kp - r;
+    temp_scores(kp(1)-r:kp(1)+r, kp(2)-r:kp(2)+r) = zeros(2*r+1, 2*r+1);
+end
+
+
 %% plotting
 figure
 title('local extrema')
 surf(SEDT)
 hold on 
-scatter3(c,r,10*ones(length(c),1),'r*')
+scatter3(keypoints_coord(2,:),keypoints_coord(1,:),10*ones(4,1),'r*')
 
 
 
