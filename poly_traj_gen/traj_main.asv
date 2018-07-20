@@ -1,3 +1,0 @@
-%% MINIMUM JERK TRAJ
-ts=linspace(0,4,5);
-xs=[1 ]

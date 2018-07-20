@@ -7,3 +7,5 @@ zs=[0 0 0 0];
 min_jerk_soft(ts,xs,ys,zs);
 
 
+
+
