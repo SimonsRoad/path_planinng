@@ -1,7 +1,7 @@
 %% MINIMUM JERK TARJECTORY GENERATION (SOFT VERSION : WAYPOINTS SOFT )
 % INPUT = [ts,xs] (waypoint and corresponding time)
 
-function [pxs,pys,pzs]=min_jerk_soft(ts,xs,ys,zs,xdot0,ydot0,zdot0,w_j)
+function sol=min_jerk_soft(ts,xs,ys,zs,xdot0,ydot0,zdot0,w)
     
     n_seg=length(ts)-1;
     poly_order=5; % for jerk, order 5 is enough 
@@ -56,11 +56,11 @@ function [pxs,pys,pzs]=min_jerk_soft(ts,xs,ys,zs,xdot0,ydot0,zdot0,w_j)
     
     for n=1:n_seg-1
         Dn=time_scailing_mat(ts(n),ts(n+1),poly_order); % Dn
-        Dn_1=time_scailing_mat(ts(n+1),ts(n+2),poly_order);%Dn+1
+        Dn_1=time_scailing_mat(ts(n),ts(n+1),poly_order);%Dn+1
 
         Aeq_temp=zeros(1,n_var_total); 
         Aeq_temp(insert_range1) =  t_vec(poly_order,1,0)'*Dn;
-        Aeq_temp(insert_range2) =  -t_vec(poly_order,0,0)'*Dn_1; 
+        Aeq_temp(insert_range2) =  t_vec(poly_order,0,0)'*Dn_1; 
         % add equality constraint 
         Aeq=[Aeq ; Aeq_temp]; beq_x=[beq_x ; 0]; beq_y=[beq_y ; 0]; beq_z=[beq_z ; 0];
         insert_range1=insert_range2; insert_range2=insert_range1+poly_order+1;
@@ -75,11 +75,11 @@ function [pxs,pys,pzs]=min_jerk_soft(ts,xs,ys,zs,xdot0,ydot0,zdot0,w_j)
         dn_1=ts(n+2)-ts(n+1);
         
         Dn=time_scailing_mat(ts(n),ts(n+1),poly_order); % Dn
-        Dn_1=time_scailing_mat(ts(n+1),ts(n+2),poly_order); %Dn+1
+        Dn_1=time_scailing_mat(ts(n),ts(n+1),poly_order);%Dn+1
 
         Aeq_temp=zeros(1,n_var_total); 
         Aeq_temp(insert_range1) =  t_vec(poly_order,1,1)'*Dn/dn;
-        Aeq_temp(insert_range2) =  -t_vec(poly_order,0,1)'*Dn_1/dn_1;
+        Aeq_temp(insert_range2) =  t_vec(poly_order,0,1)'*Dn_1/dn_1;
         
         % add equality constraint 
         Aeq=[Aeq ; Aeq_temp]; beq_x=[beq_x ; 0]; beq_y=[beq_y ; 0]; beq_z=[beq_z ; 0];
@@ -95,11 +95,11 @@ function [pxs,pys,pzs]=min_jerk_soft(ts,xs,ys,zs,xdot0,ydot0,zdot0,w_j)
         dn_1=ts(n+2)-ts(n+1);
         
         Dn=time_scailing_mat(ts(n),ts(n+1),poly_order); % Dn
-        Dn_1=time_scailing_mat(ts(n+1),ts(n+2),poly_order);%Dn+1
+        Dn_1=time_scailing_mat(ts(n),ts(n+1),poly_order);%Dn+1
 
         Aeq_temp=zeros(1,n_var_total); 
-        Aeq_temp(insert_range1) =  t_vec(poly_order,1,2)'*Dn/dn^2;
-        Aeq_temp(insert_range2) =  -t_vec(poly_order,0,2)'*Dn_1/dn_1^2;
+        Aeq_temp(insert_range1) =  t_vec(poly_order,1,1)'*Dn/dn^2;
+        Aeq_temp(insert_range2) =  t_vec(poly_order,0,1)'*Dn_1/dn_1^2;
         
         % add equality constraint 
         Aeq=[Aeq ; Aeq_temp]; beq_x=[beq_x ; 0]; beq_y=[beq_y ; 0]; beq_z=[beq_z ; 0];
@@ -108,12 +108,7 @@ function [pxs,pys,pzs]=min_jerk_soft(ts,xs,ys,zs,xdot0,ydot0,zdot0,w_j)
     
     %% QP solve   
     Qx=w_j*Q_jerk+Q_wpnt;
-    Hx=H_wpnt_x; Hy=H_wpnt_y; Hz=H_wpnt_z;
-   
-    pxs=quadprog(2*Qx,Hx,[],[],Aeq,beq_x);
-    pys=quadprog(2*Qx,Hy,[],[],Aeq,beq_y);
-    pzs=quadprog(2*Qx,Hz,[],[],Aeq,beq_z);
-    
-    
+    Hx=
+    pxs=quadprog()
     
 end

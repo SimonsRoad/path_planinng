@@ -8,7 +8,7 @@ zs=[0 0 0 0];
 xdot0=0;
 ydot0=0;
 zdot0=0;
-w_j=0.0005;
+w_j=0.001;
 [pxs,pys,pzs]=min_jerk_soft(ts,xs,ys,zs,xdot0,ydot0,zdot0,w_j);
 
 %% PLOT 
