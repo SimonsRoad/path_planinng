@@ -105,6 +105,9 @@ function [pxs,pys,pzs]=min_jerk_soft(ts,xs,ys,zs,xdot0,ydot0,zdot0,w_j)
         Aeq=[Aeq ; Aeq_temp]; beq_x=[beq_x ; 0]; beq_y=[beq_y ; 0]; beq_z=[beq_z ; 0];
         insert_range1=insert_range2; insert_range2=insert_range1+poly_order+1;
     end
+   
+    
+    
     
     %% QP solve   
     Qx=w_j*Q_jerk+Q_wpnt;
