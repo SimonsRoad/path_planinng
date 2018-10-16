@@ -96,6 +96,46 @@ ub = [xu yu ones(1,Nk) inf inf];
 intcon = x_dim+1:x_dim+Nk;
 sol=intlinprog(f,intcon,A_ineq,b_ineq,A_eq,b_eq,lb,ub);
 
+%% MIP optimization3  - objective function: || X_3 - X_2|| + || X_2 - X_1|| + || X_1 - X_ref ||+ vis_score(X1) + vis_score(X2) + vis_score(X3) + ... 
+H = 3; % future prediction horizon 
+vis_score_maps = [4 3 2 1 2 3 4 5 6 7 ; 3 2 1 2 3 4 5 6 7 4; 2 1 2 3 4 5 6 7 4 3];
+
+g0 =[1.5, - 1]'; % position of target 
+g1 = g0 + [0.5 0]';
+g2 = g1 + [0.5 0]';
+gs = [g0 g1 g2];
+
+for t = 1:H
+    g = gs(:,t); % current position of the target 
+    Nk = 0; % number of regions devided 
+    for k = 1:N
+        theta1 = 2*pi/N*(k-1);
+        theta2 = 2*pi/N*k;
+
+        % two boundary lines
+        v1 = [cos(theta1), sin(theta1)]'; 
+        v2 = [cos(theta2) , sin(theta2)]'; 
+
+        if ( is_in_box(v1,g,[xl xu],[yl yu]) || is_in_box(v2,g,[xl xu],[yl yu]) )
+            [A,b] = get_ineq_matrix(g,v1,v2);        
+            Nk = Nk +1;
+            As{Nk} = A; bs{Nk}=b; % inequality constraint
+            ks{Nk}=k; % index of region which intersects with box boundary
+        end   
+
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
 %% plot the problem 
 
 figure 
@@ -121,7 +161,7 @@ hold off
 %% Check the convexity of the problem (the first purple label)
 
 % we will investigate the 3rd region by drawing some surf with mesh grid 
-
+% but its is non convex... 
 k = 3;
 
 theta1 = 2*pi/N*(k-1);
@@ -160,7 +200,7 @@ end
 surf(Xs,Ys,Zs)    
 colorbar
 
-
+%% 
 
 
 

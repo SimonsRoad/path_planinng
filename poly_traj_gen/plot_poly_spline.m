@@ -3,12 +3,12 @@
 function plot_poly_spline(Ts,Xs,Ys,Zs,pxs,pys,pzs)
     n_seg=length(Xs)-1;
     n_poly=length(pxs)/n_seg-1;
-    N=20;
+    N=5;
     xs=[]; ys=[]; zs=[];
     ts=[];
     % per segement 
     for n=1:n_seg
-        t1=Ts(n);
+        t1=Ts(n); 
         t2=Ts(n+1);
                 
         px=pxs((n_poly+1)*(n-1)+1:(n_poly+1)*n);
