@@ -179,6 +179,7 @@ classdef path_manager < handle
             end        
         end
         
+        
         function path_plot(path_manager)               
             % for each segment, we plot the path 
             for seg=1:length(path_manager.px)
@@ -266,7 +267,74 @@ classdef path_manager < handle
             guidance_idx=guidance_idx(2:end-1);
             waypoints=local_path(guidance_idx,:);                   
         end           
+          
+        function waypoints = comparison_algorithm(path_manager,x0,target_prediction) 
+            % this function is for generating a tracking path which is not
+            % my algorithm. The x0 is current tracker positoin.
+            % we first generate initial tracking path by traslation
             
+            cur_target_pos = target_prediction(1,:); 
+            
+            N_points = length(target_prediction); % N_pred + 1
+            
+            x0 = reshape(x0,1,2);
+            trans = x0 - cur_target_pos;
+            % this is would be final position of the tracker following this
+            % simple algorithm 
+            xf_ = target_prediction(end,:) + trans ;
+            % let't inspect whether this point feasible 
+            xf_try = xf_;
+            is_feasible = true ;
+            for obs_idx=1:length(path_manager.obstacles) % for obstacle list
+                   this_obs=path_manager.obstacles{obs_idx};
+                   if this_obs.isobs(xf_')
+                            is_feasible = false;
+                         break
+                    end      
+            end
+            % if this point was infeasible, purturb little bit in a circle
+            % boundary r_max 
+             r_max = 5; % hope feasible point is discovered in this boundary 
+             
+             try_num = 10000000;
+             tried_num = 0;
+             
+            while (~is_feasible) 
+                 r_sample = r_max * rand;
+                 theta_sample = 2*pi * rand;
+                    
+                 xf_try = xf_ + [r_sample * cos(theta_sample) r_sample * sin(theta_sample)];
+                 
+                 % try feasiblity
+                is_feasible = true ;
+                for obs_idx=1:length(path_manager.obstacles) % for obstacle list
+                       this_obs=path_manager.obstacles{obs_idx};
+                       if this_obs.isobs(xf_try')
+                                is_feasible = false;
+                             break
+                       end      
+                end
+               
+                tried_num = tried_num + 1;
+            end
+            
+             if (is_feasible)
+                xf = xf_try; 
+                % okay proceed with this final position. 
+                % Too big extension causes unnecessary guindace points
+                Nx_grid=25;
+                Ny_grid=25;
+                
+                left_lower_corner = [min(x0(1),xf(1)) min(x0(2),xf(2))]-[1 1];
+                right_upper_corner = [max(x0(1),xf(1)) max(x0(2),xf(2))]+[1 1];
+                waypoints = path_manager.guidance_waypoint(x0,xf,left_lower_corner,right_upper_corner,Nx_grid,Ny_grid,N_points);
+             else
+                 fprintf("feasible final point was not found, try inceasing the search boundary");
+             end        
+            
+        end
+        
+        
        end
           
 end

@@ -177,7 +177,7 @@ classdef ASAP_problem < handle
                         weight=dist^2+(ASAP_problem.w_v)/vis;
                     end
                     
-                    if dist<6
+                    if dist<4
                      ASAP_problem.G=ASAP_problem.G.addedge('t0',name_node,weight);
                     end
                 end %connect 
