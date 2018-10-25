@@ -80,6 +80,7 @@ for k = 1:Nk
     A_ineq = [A_ineq ; A_cur];
 end
 
+
 A_cur = [eye(2)  zeros(2,Nk) -eye(2) ; -eye(2) zeros(2,Nk) -eye(2)];
 A_ineq = [A_ineq ; A_cur];
 
@@ -159,6 +160,12 @@ end
 
 surf(Xs,Ys,Zs)    
 colorbar
+
+%% horizon considered 
+
+
+
+
 
 
 

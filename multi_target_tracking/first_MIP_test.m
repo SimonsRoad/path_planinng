@@ -69,8 +69,7 @@ vis_score =  weight * fliplr(1:5); % smaller : more visible
 % objective function 
 f = [zeros(1,x_dim) vis_score ones(1,2)];
 
-% inequality constraint 
-
+% inequality constraint for sub-division 
 b_ineq = [M*ones(2*Nk,1) ; X_ref(1) ; X_ref(2) ; -X_ref(1) ; -X_ref(2)];
 for k = 1:Nk    
     A_binary  = zeros(size(As{k},1),Nk);
@@ -80,6 +79,7 @@ for k = 1:Nk
     A_ineq = [A_ineq ; A_cur];
 end
 
+% this insertion of new inequality condition is for epi variables 
 A_cur = [eye(2)  zeros(2,Nk) -eye(2) ; -eye(2) zeros(2,Nk) -eye(2)];
 A_ineq = [A_ineq ; A_cur];
 
@@ -114,9 +114,6 @@ end
 plot(X_ref(1),X_ref(2),'b^')
 plot(sol(1),sol(2),'r*')
 hold off
-
-
-
 
 %% Check the convexity of the problem (the first purple label)
 
@@ -159,6 +156,12 @@ end
 
 surf(Xs,Ys,Zs)    
 colorbar
+
+%% horizon considered 
+
+
+
+
 
 
 
