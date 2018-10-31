@@ -117,7 +117,7 @@ for t_step=2:N_step% traget movement step
         if generate_cond
            %% Predict and generate path 
            N_gen=N_gen+1; 
-           N_pred=5; % Prediction horizon : total generation of waypoint = N_pred+1 
+           N_pred=4; % Prediction horizon : total generation of waypoint = N_pred+1 
             prev_target_pos=target_path(t_step-1,:);
             cur_target_pos=target_path(t_step,:);        
 
@@ -140,7 +140,9 @@ for t_step=2:N_step% traget movement step
             asap.graph_wrapper();       
 
             % Key frame proposal 
+            tic
             waypoint=asap.path_proposal();    
+            toc
             tracker_path.waypoints{N_gen}=waypoint;
             tracker_path.refer{N_gen}=target_pred;
             
