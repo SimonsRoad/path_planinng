@@ -111,13 +111,13 @@ end
 % w_v: weight for visibility 
 %%%
 H  = length(target_xs) ; % total horizon 
-N_var = 2*H + 2*H + 2*(H-2) + length(S); % x,y,dx,dy,jx,jy,z, X+, X- , Y+, Y-, D 
+N_var = 2*H + 2*H + 2*(H-2) + length(S) +  ; % x,y,dx,dy,jx,jy,z, (X+, X-), (Y+, Y-), Ax, Ay, D 
 w_j = 1;
 w_v = 100;
-
+w_d = 2; % weight for desired distance
 
 % objective function : sum of travel (1 norm), sum of jerk, sum of visibility cost  
-f = [zeros(1,2*H),  ones(1,2*H) ,  w_j * ones(1,2*(H-2)), w_v*S];
+f = [zeros(1,2*H),  ones(1,2*H) ,  w_j * ones(1,2*(H-2)), w_v*S zeros(1,6*H) w_d*ones(1,H)];
 
 % equality constraint
 Aeq = zeros(H,N_var);
@@ -198,11 +198,18 @@ for h = 1:H
 end
 
 
+% inequality 5: absolute value bounding 
+
+
+
+
+
+% optimization 
 intcon = 6*H -4 + 1 : N_var;
-lb = -inf * ones(N_var,1); lb(intcon) = 0; lb(1:2:2*H) = xl;  lb(2:2:2*H) = yl;
-ub = inf * ones(N_var,1); ub(intcon) = 1; ub(1:2:2*H) = xu; ub(2:2:2*H) = yu;
+lbs = -inf * ones(N_var,1); lbs(intcon) = 0; lbs(1:2:2*H) = xl;  lbs(2:2:2*H) = yl;
+ubs = inf * ones(N_var,1); ubs(intcon) = 1; ubs(1:2:2*H) = xu; ubs(2:2:2*H) = yu;
 tic
-sol = intlinprog(f,intcon,[Aineq1 ; Aineq2;  Aineq3 ; Aineq4 ],[bineq1; bineq2; bineq3; bineq4],Aeq,beq,lb,ub);
+sol = intlinprog(f,intcon,[Aineq1 ; Aineq2;  Aineq3 ; Aineq4 ],[bineq1; bineq2; bineq3; bineq4],Aeq,beq,lbs,ubs);
 toc
 
 %% Anaylsis
