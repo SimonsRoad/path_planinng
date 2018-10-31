@@ -24,7 +24,7 @@ for t = 1:length(target_xs) % -1 is due to some mistake in set_target_tracker fu
     angles = linspace(0,2*pi,N_azim+1);
     angles(end) = [];
     
-    cast_res = zeros(1,N_azim); % 1 for hit and 0 for free rays    
+    cast_res = zeros(1,N_azim); % 1 for hit and 0 for free rays    t
     collisionPts=map.rayIntersection(target_position,angles,ray_len); % the NaN elements are not hit, 
     collisionIdx=find(~isnan(collisionPts(:,1))); % collided index 
     cast_res(collisionIdx) = 1;
@@ -111,17 +111,17 @@ end
 % w_v: weight for visibility 
 %%%
 H  = length(target_xs) ; % total horizon 
-N_var = 2*H + 2*H + 2*H + 2*(H-2) + length(S); % x,y,dx,dy,tdx, tdy,jx,jy,z, 
+N_var = 2*H + 2*H + 2*(H-2) + length(S); % x,y,dx,dy,jx,jy,z, X+, X- , Y+, Y-, D 
 w_j = 1;
 w_v = 100;
 
 
 % objective function : sum of travel (1 norm), sum of jerk, sum of visibility cost  
-f = [zeros(1,2*H),  ones(1,2*H), zeros(1,2*H),  w_j * ones(1,2*(H-2)), w_v*S];
+f = [zeros(1,2*H),  ones(1,2*H) ,  w_j * ones(1,2*(H-2)), w_v*S];
 
 % equality constraint
 Aeq = zeros(H,N_var);
-insert_idx = 2*H + 2*H + 2*H + 2*(H-2) + 1;
+insert_idx = 2*H + 2*H  + 2*(H-2) + 1;
     
 for h = 1:H
     Aeq(h,insert_idx:insert_idx+Nh(h)-1) = ones(1,Nh(h));
@@ -150,20 +150,7 @@ for h = 1:H
     insert_col = insert_col + 2;
 end
 
-% inequality 1-1 : tracking  distance auxiliary variables
-Aineq11 = zeros(4*H,N_var); bineq11 = zeros(4*H,1);
-insert_mat_xy = [-1 0 ; 1 0 ; 0 -1 ; 0 1];
-insert_mat_d = [-1 0 ; -1 0; 0 -1; 0 -1];
-insert_row = 1;
-insert_col = 1;
 
-for h = 1:H
-    Aineq11(insert_row:insert_row+3,insert_col:insert_col + 1) = insert_mat_xy; 
-    Aineq11(insert_row:insert_row+3,insert_col + 4*H  : insert_col + 4*H +1 ) = insert_mat_d;
-    bineq11(insert_row:insert_row+3) = [-target_xs(h) target_xs(h) -target_ys(h) target_ys(h)];
-    insert_row = insert_row + 4;
-    insert_col = insert_col + 2;
-end
 
 % inequality 2 : jerk auxiliary variables
 
@@ -177,10 +164,10 @@ insert_mat_xy = [-insert_mat_xy 3*insert_mat_xy -3*insert_mat_xy insert_mat_xy];
 for h = 1:H - 2
     if h == 1
         Aineq2(insert_row:insert_row+3,insert_col:insert_col + 5) = insert_mat_xy(:,3:end); bineq2(insert_row:insert_row+3) = [-tracker(1) tracker(1) -tracker(2) tracker(2)]';
-        Aineq2(insert_row:insert_row+3,insert_col + 6*H   : insert_col + 6*H +1  ) = insert_mat_d;
+        Aineq2(insert_row:insert_row+3,insert_col + 4*H   : insert_col + 4*H +1  ) = insert_mat_d;
     else
         Aineq2(insert_row:insert_row+3,insert_col-2:insert_col+5) = insert_mat_xy;
-        Aineq2(insert_row:insert_row+3,insert_col + 6*H  : insert_col + 6*H + 1 ) = insert_mat_d;        
+        Aineq2(insert_row:insert_row+3,insert_col + 4*H  : insert_col + 4*H + 1 ) = insert_mat_d;        
     end    
     insert_row = insert_row + 4;
     insert_col = insert_col + 2;
@@ -198,7 +185,7 @@ insert_blk_row = 1;
 for h = 1:H 
     for k = 1: Nh(h)
         Aineq3(2*(insert_blk_row-1)+1:2*(insert_blk_row),2*(h-1)+1:2*(h)) = A_sub{h}{k};
-        Aineq3(2*(insert_blk_row-1)+1:2*(insert_blk_row), 8*H-4 + (insert_blk_row)) = -b_sub{h}{k} + M; 
+        Aineq3(2*(insert_blk_row-1)+1:2*(insert_blk_row), 6*H-4 + (insert_blk_row)) = -b_sub{h}{k} + M; 
         insert_blk_row = insert_blk_row + 1;
     end   
 end
@@ -210,22 +197,12 @@ for h = 1:H
     Aineq4(h,2*H + 2*(h-1) + 1 : 2*H + 2*h) = ones(1,2);     
 end
 
-% inequality 5:
-des_min = 3;
-des_max = 10;
 
-Aineq5 = zeros(2*H,N_var); bineq5 = zeros(2*H,1);
-for h = 1:H
-    Aineq5(2*(h-1) + 1: 2*h,4*H + 2*(h-1) +1: 4*H + 2*h) = [-1 -1; 1 1];
-    bineq5(2*(h-1) +1:2*h) = [-des_min ; des_max];   
-end
-
-
-intcon = 8*H -4 + 1 : N_var;
+intcon = 6*H -4 + 1 : N_var;
 lb = -inf * ones(N_var,1); lb(intcon) = 0; lb(1:2:2*H) = xl;  lb(2:2:2*H) = yl;
 ub = inf * ones(N_var,1); ub(intcon) = 1; ub(1:2:2*H) = xu; ub(2:2:2*H) = yu;
 tic
-sol = intlinprog(f,intcon,[Aineq1 ; Aineq2; Aineq11 ; Aineq3 ; Aineq4 ; Aineq5],[bineq1; bineq2; bineq11; bineq3; bineq4; bineq5],Aeq,beq,lb,ub);
+sol = intlinprog(f,intcon,[Aineq1 ; Aineq2;  Aineq3 ; Aineq4 ],[bineq1; bineq2; bineq3; bineq4],Aeq,beq,lb,ub);
 toc
 
 %% Anaylsis
