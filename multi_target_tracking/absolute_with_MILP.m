@@ -16,6 +16,7 @@ yc = -0.5;
 Lx = lb - xc; Ux = ub - xc;
 Ly = lb - yc; Uy = ub - yc;
 
+% var : X+, X-, Y+, Y-, Ax, Ay, D  ++ X, Y  
 
 Aineq = [
     -1 0 0 0 max(0,Lx) 0 0; 
@@ -34,25 +35,25 @@ Aineq = [
     0 0 0 0 0 1 0 
     ];
 
-
-
-
 bineq = [0 0 -max(0,-Ux) max(0,-Lx) 0 0 -max(0,-Uy) max(0,-Ly) -d_des d_des -((abs(Lx)+Lx)/(2*abs(Lx))) ((abs(Ux)+Ux)/(2*abs(Ux))) -((abs(Ly)+Ly)/(2*abs(Ly))) ((abs(Uy)+Uy)/(2*abs(Uy)))]';
-% Aeq = [2 -2 1 -1 0 0 0 ];
-% beq = 2;
+
+Aineq = [Aineq zeros(size(Aineq,1),2)];
+Aeq = [-1 1 0 0 0 0 0 1 0;
+            0 0 -1 1 0 0 0 0 1];
+beq = [xc ; yc];
 
 
-f = [0 0 0 0 0 0 1];
-lbs = [-inf -inf -inf -inf 0 0 -inf];
-ubs = [inf inf inf inf 1 1 inf];
+f = [0 0 0 0 0 0 1 0 0];
+lbs = [-inf -inf -inf -inf 0 0 -inf lb lb];
+ubs = [inf inf inf inf 1 1 inf ub ub];
 intcon = 5:6;
 
 tic 
-sol = intlinprog(f,intcon,Aineq,bineq);
+sol = intlinprog(f,intcon,Aineq,bineq,Aeq,beq);
+toc
 x = xc + sol(1) - sol(2);
 y = yc + sol(3) - sol(4);
 
-toc
 
 %% nonlinear optimization 
 % 0.14
