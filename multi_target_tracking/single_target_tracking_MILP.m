@@ -97,7 +97,7 @@ for h = 1:H
     Nh(h) = Nk; % save the available number of region
 end
 
-%% Generation of optimal sequence (refer lab note)
+%% Generation of optimal sequence : everything was converted into LP (refer lab note)
 
 
 %%%
@@ -264,8 +264,12 @@ toc
 % variables parsing 
 waypoints_x = sol(1:2:2*H);
 waypoints_y = sol(2:2:2*H);
-plot(waypoints_x,waypoints_y,'bs-','LineWidth',1)
-plot([tracker(1) waypoints_x(1)],[tracker(2) waypoints_y(1)],'bs-','LineWidth',1);
+MILP_path_plot1=plot(waypoints_x,waypoints_y,'ms-','LineWidth',2);
+MILP_path_plot2=plot([tracker(1) waypoints_x(1)],[tracker(2) waypoints_y(1)],'ms-','LineWidth',2);
+
+
+
+% legend(MILP_path_plot1,'MILP')
 
 select_region_seq = zeros(1,H);
 inspect_idx = 6*H -4 + 1;
@@ -277,227 +281,44 @@ inspect_idx = 6*H -4 + 1;
 % end
 
 
-%% %% Comparison with A star 
+%% Optional 
 
-%% Search map setting for Astar 
-search_res = 1; 
-Xs = xl:search_res:xu;
-Ys = yl:search_res:yu;
-[x_mesh,y_mesh]  = meshgrid(Xs,Ys);
-mesh_row = size(x_mesh,1);
-mesh_col = size(y_mesh,2);
-% draw current problem settings 
-
-%% 
-
-% for now, the feasible region for solving discrete path is just rectangle
-% (TODO: extension for general affine region)
-H = length(target_xs);
-x_range = 12;
-y_range = 6;
-feasible_domain_x = [tracker(1) - x_range/2 tracker(1) + x_range/2];
-xl = feasible_domain_x(1);
-xu = feasible_domain_x(2);
-feasible_domain_y = [tracker(2) - y_range/2  tracker(2)  + y_range/2];
-yl = feasible_domain_y(1);
-yu = feasible_domain_y(2);
-
-% plot the problem 
-show(map)
+ figure;
+for h = 1:H   
+subplot(H/2,H/2,h)
+fig_h=show(map);
+axis off
 hold on 
-plot(target_xs,target_ys,'r*')
-plot(tracker(1),tracker(2),'ko', 'MarkerFaceColor','b','MarkerSize',10);
+target_pos=plot(target_xs(h),target_ys(h),'r^','MarkerSize',10,'MarkerFaceColor','r');    
 patch([xl xu xu xl],[yl yl yu yu],'red','FaceAlpha',0.1)
 
-% A_sub, b_sub : inequality matrix of each sub division region (sigma Nh  pair)
-Nh = zeros(1,H); % we also invesigate number of available regions per each time step 
-angles = linspace(0,2*pi,N_azim+1);
-S = [];
-A_sub  = {};
-b_sub = {};
-N_vis_show = 3; % shows N largest vis score 
-d_ref = norm([target_xs(1) target_ys(1)]' - tracker);
-
-for h = 1:H
-    Nk = 0; % initialize number of valid region
-        
-    for k = 1:N_azim    
-        % Bounding lines of the k th pizza segment !
-        theta1 = 2*pi/N_azim * (k-1);
-        theta2 = 2*pi/N_azim * (k);        
-        v1 = [cos(theta1), sin(theta1)]'; 
-        v2 = [cos(theta2) , sin(theta2)]'; 
-        % If this holds, then one of the two line is in the box 
-        if ( is_in_box(v1,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) || is_in_box(v2,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) )
-            if(DT_set(h,k)) % occlusion and collision rejection
-                [A,b] = get_ineq_matrix([target_xs(h) ; target_ys(h)],v1,v2);        
-                Nk = Nk +1;
-                A_sub{h}{Nk} = A; b_sub{h}{Nk}=b; % inequality constraint
-                S=[S vis_cost_set(h,k)]; % visbiility cost of the region 
-            end
-        end          
-    end
-    
-    [sorted_val, indices] = sort(vis_cost_set(h,:));
-    goods = indices(1:N_vis_show);
-   
-    for i = 1:N_vis_show
-        good = goods(i);
-        draw_circle_sector([target_xs(h) target_ys(h)],2*pi/N_azim * (good-1),2*pi/N_azim * (good),d_ref,'g',1/sorted_val(i)*0.3);        
-    end
-    
-    Nh(h) = Nk; % save the available number of region
+Nk = 0;
+for k = 1:N_azim    
+        % Bounding lines of the k th pizza segment !    
+        draw_circle_sector([target_xs(h) target_ys(h)],2*pi/N_azim * (k-1),2*pi/N_azim * (k),10,'g',DT_set(h,k)/5); 
+        text_theta = (2*pi/N_azim * (k-1) + 2*pi/N_azim * (k))/2;
+        if (DT_set(h,k) )
+            Nk = Nk + 1;
+            text_str = sprintf('$z_{%d%d}$',h,Nk);
+%             text(target_xs(h) + 3*cos(text_theta)  , target_ys(h) +3* sin(text_theta),text_str,'Interpreter','latex','FontSize',20)
+        end
 end
 
+MILP_path_plot3=plot(waypoints_x,waypoints_y,'ms-','LineWidth',2);
+plot(waypoints_x(h),waypoints_y(h),'ms','MarkerSize',15,'MarkerFaceColor','m');
 
-% draw generated grid space for A star 
+text_str = sprintf('$x_{%d} , y_{%d} $',h,h);
+text_str2 = sprintf('$x_{g,%d} , y_{g,%d} $',h,h);
 
-% horizontal line 
-for r = 1: mesh_row
-    plot([xl xu],[Ys(r) Ys(r)],'k-')
+text(waypoints_x(h) , waypoints_y(h) -0.5,text_str,'Interpreter','latex','FontSize',20)
+text(target_xs(h) +0.3 , target_ys(h) ,text_str2,'Interpreter','latex','FontSize',20)
+
+
+leg=legend([target_pos,MILP_path_plot3],{'target','wpts seq'},'Interpreter','latex','fontsize', 15);
+
+title(sprintf('$ t_{%d}$',h),'Interpreter','latex','FontSize',20)
+set(gca,'XLabel',[])
+set(gca,'YLabel',[])
+
 end
-
-% vertical line
-for c = 1: mesh_col
-    plot([Xs(c) Xs(c)],[yl yu],'k-')
-end
-
-% flatten mesh 
-x_mesh = reshape(x_mesh,1,[]);
-y_mesh = reshape(y_mesh,1,[]);
-pnts_grid = [x_mesh ; y_mesh];
-[x_mesh,y_mesh]  = meshgrid(Xs,Ys);
-
-
-%% Graph Construction 
-G = digraph();
-% graph library is shit. have to keep names and points both...
-node_name_array = {}; %string
-node_loc_array = {}; % actual points (R^2)
-node_cost_array={}; % visbility cost vector 
-
-name_vec = {'t0n1'};
-loc_vec = tracker;
-node_name_array{1} = name_vec;
-node_loc_array{1} = loc_vec;
-
-d_max = 1.2; % allowable interval distance in 1 norm sense 
-
-n_grid = length(pnts_grid);
-w_v = 0.5; % visibility weight for optimization 
-
-%% Graph construction 
-Astar_G = digraph();
-
-elapsed1 =zeros(1,H);
-elapsed2 = 0;
-
-% we will update the edge only once not every time 
-node1_list = {};
-node2_list = {};
-weight_list = [];
-edge_cnt = 0;
-
-for h = 1: H    
-    node_name_array{h+1} = strseq(strcat('t',num2str(h),'n'),1:n_grid);    
-
-    %% Phase 1:  adding nodes for the current timestep
-    tic 
-    Astar_G=Astar_G.addnode(node_name_array{h+1});
-    
-    node_loc_array{h+1} = pnts_grid;
-    
-    cur_target_pos = [target_xs(h) ; target_ys(h)];     
-    diff = pnts_grid - cur_target_pos;    
-    grid_angles = atan2(diff(2,:),diff(1,:)); % angles of vectors connecting each pnt on the grid and current target position    
-    grid_angles(grid_angles < 0)  = grid_angles(grid_angles < 0)  + 2*pi; 
-    grid_segs = ceil(grid_angles/(2*pi/N_azim)); % belonging pizza segments 
-    
-    node_cost_array{h} =  abs(1./DT_set(h,grid_segs)); % vis cost array 
-    
-    % mapping from grid index (r,c) to flattend index (n)
-    grid2flat = @(r,c,N_row) r + N_row * (c-1);
-    elapsed1(h)=toc;
-    %% Phase 2: adding egdes between two time step     
-%     tic 
-    for prev_idx = 1: length(node_name_array{h})
-                
-            % we will find the indices of neighbor hood of loc1 spanned by
-            % square box (loc1, d_max)                    
-            loc1 = node_loc_array{h}(:,prev_idx);            
-            r_idx_min_box = max (ceil((loc1(2) - d_max -yl)/ search_res),1);
-            c_idx_min_box = max(ceil((loc1(1) - d_max -xl)/ search_res),1);            
-            r_idx_max_box = min(floor((loc1(2) + d_max -yl)/ search_res),size(x_mesh,1));
-            c_idx_max_box = min(floor((loc1(1) + d_max -xl)/ search_res),size(x_mesh,2));            
-            box_indices_flat = [];            
-            for r_idx_box = r_idx_min_box : r_idx_max_box
-                for c_idx_box = c_idx_min_box : c_idx_max_box
-                    box_indices_flat=[box_indices_flat grid2flat(r_idx_box,c_idx_box,size(x_mesh,1))]; 
-                end
-            end            
-            
-           for current_neightbor_idx = box_indices_flat % this index belongs to the current step
-                loc2 = node_loc_array{h + 1}(:,current_neightbor_idx); 
-                weight = w_v * node_cost_array{h}(current_neightbor_idx) + norm(loc1-loc2);
-                edge_cnt = edge_cnt + 1;
-                node1_list{edge_cnt} = node_name_array{h}{prev_idx};
-                node2_list{edge_cnt} = node_name_array{h+1}{current_neightbor_idx};
-                weight_list(edge_cnt) = weight;
-%                 Astar_G=Astar_G.addedge(node_name_array{h}{prev_idx},node_name_array{h+1}{current_neightbor_idx},weight);           % this is very slow  
-           end            
-%             % test : is this right? 
-%             hold on 
-%             plot(loc1(1),loc1(2),'bs')            
-%             plot(node_loc_array{h+1}(1,box_indices_flat),node_loc_array{h+1}(2,box_indices_flat),'ms')
-%             axis equal                                                    
-    end           
-%     elapsed2(h)=toc;
-end
-tic 
-Astar_G=Astar_G.addedge(node1_list,node2_list, (weight_list));
-elsapsed2=toc;
-
-    %% Phase 3 : wrapping the graph 
-    for idx = 1:length(node_name_array{H+1})        
-        Astar_G = Astar_G.addedge(node_name_array{H+1}(idx),'xf',0.1);
-    end
-    %% Phase 4: path solve
-    
-    figure
-    tic
-    path_idx =Astar_G.shortestpath('t0n1','xf');
-    elapsed4=toc; 
-    
-    
-    %% Analysis Graph plot 
-    
-    
-    
-    
-    
-    
-    
-    
-
-%% optional : draw visbility cost map in the grid field for a time step 
-
-h_show = 1;
-figure
-hold on 
-plot(target_xs(h_show),target_ys(h_show),'r*')
-for plot_idx = 1:length(pnts_gird)    
-    patch([(pnts_grid(1,plot_idx) - search_res/2), (pnts_grid(1,plot_idx) +search_res/2), (pnts_grid(1,plot_idx) +search_res/2), (pnts_grid(1,plot_idx) - search_res/2)]...
-        ,[(pnts_grid(2,plot_idx) - search_res/2), (pnts_grid(2,plot_idx) - search_res/2), (pnts_grid(2,plot_idx) +search_res/2) ,(pnts_grid(2,plot_idx) + search_res/2)],...
-        'green','FaceAlpha',(1/node_cost_array{h_show}(plot_idx)) /(1/min(node_cost_array{h_show}))*0.5 )    
-end
-
-
-
-
-
-
-
-
-
-
 

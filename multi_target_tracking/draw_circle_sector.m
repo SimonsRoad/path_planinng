@@ -15,6 +15,6 @@ function draw_circle_sector(xc,theta_min,theta_max,r,color,alpha)
          ys = [ys X_cur(2)];         
      end
      
-     patch(xs,ys,color,'FaceAlpha',alpha,'EdgeColor','none');
+     patch(xs,ys,color,'FaceAlpha',alpha,'EdgeColor','k');
 
 end
