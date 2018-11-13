@@ -129,6 +129,7 @@ h_max    = [];
 % parse the variable input arguments
 linecolor = 'k'; 
 backgroundcolor = 0;
+alpha = 0.5;
 linewidth = 1;
 linestyle = '-';
 filllinestyle = '-';
@@ -158,7 +159,9 @@ if (length(varargin) > 0)
        case {'linecolor','lc'}
 	linecolor = value;
        case {'backgroundcolor','bgc'}
-	backgroundcolor = value;
+	backgroundcolor = value;       
+      case {'alpha','alp'}
+	alpha = value;
        case {'linewidth','lw'}
 	linewidth = value;
        case {'linestyle','ls'}
@@ -280,7 +283,7 @@ if (backgroundcolor == 0)
 else
   h_bnd = fill(sorted_vertices(1,:), sorted_vertices(2,:), backgroundcolor, ...
 	       'edgecolor', linecolor, 'linewidth', linewidth, 'linestyle', linestyle);
-  set(h_bnd,'facealpha',.5);
+  set(h_bnd,'facealpha',alpha);
 end
 
 % plot the intersection points and vertices

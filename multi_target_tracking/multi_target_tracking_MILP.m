@@ -9,37 +9,68 @@ lx = 10; ly = 10; % size of map in real coordinate
 res = lx / map_dim;
 custom_map=makemap(20); % draw obstacle interactively
 
-%% Generate map occupancy grid object 
-
+%% Generate map occupancy grid object  and path of the two targets
 map = robotics.OccupancyGrid(flipud(custom_map),1/res);
 show(map);
-[target_xs,target_ys,tracker]=set_target_tracker; % assign target and tracker
-%% Get score map from each target point
+[target1_xs,target1_ys,target2_xs,target2_ys,tracker]=set_target_tracker2; % assign path of two targets and tracker
 
-vis_cost_set = []; % row : time / col : angle index 
-N_azim = 10;
-DT_set = [];
-for t = 1:length(target_xs) % -1 is due to some mistake in set_target_tracker function 
-    target_position = [target_xs(t), target_ys(t) 0]';
-    ray_len = norm(target_position(1:2) - tracker);
-    ray_lens = ray_len * ones(N_azim,1);
-    angles = linspace(0,2*pi,N_azim+1);
-    angles(end) = [];
+% packing the target paths (should be same length)
+targets_xs = [target1_xs ; target2_xs];
+targets_ys = [target1_ys ; target2_ys];
+N_target = 2; % only two targets will be considered
+
+vis_cost_sets = {};
+
+%% Get score maps of each target during a prediction horizon 
+d_ref = 2;
+for n = 1:N_target 
+    target_xs = targets_xs(n,:);
+    target_ys = targets_ys(n,:);
     
-    cast_res = zeros(1,N_azim); % 1 for hit and 0 for free rays    t
-    collisionPts=map.rayIntersection(target_position,angles,ray_len); % the NaN elements are not hit, 
-    collisionIdx=find(~isnan(collisionPts(:,1))); % collided index 
-    cast_res(collisionIdx) = 1;
-    DT = signed_distance_transform([cast_res cast_res cast_res]); % periodic distance transform 
-    DT = DT(N_azim+1:2*N_azim); % extracting 
-    DT_set = [DT_set ; DT ];
-    vis_cost = max(DT) - DT + 1; 
-    vis_cost_set(t,:) = vis_cost;    
-end
-%% Feasible region convex division for LP problem 
+    vis_cost_set = []; % row : time / col : angle index 
+    N_azim = 10;
+    DT_set = [];
+    for t = 1:length(target_xs) % -1 is due to some mistake in set_target_tracker function 
+        target_position = [target_xs(t), target_ys(t) 0]';
 
-% for now, the feasible region for solving discrete path is just rectangle
+
+        ray_len = norm(target_position(1:2) - tracker); % should decide this length 
+        ray_len = d_ref;
+        ray_lens = ray_len * ones(N_azim,1); 
+        angles = linspace(0,2*pi,N_azim+1);
+        angles(end) = [];
+
+        cast_res = zeros(1,N_azim); % 1 for hit and 0 for free rays   
+        collisionPts=map.rayIntersection(target_position,angles,ray_len); % the NaN elements are not hit, 
+        collisionIdx=find(~isnan(collisionPts(:,1))); % collided index 
+        cast_res(collisionIdx) = 1;
+
+        DT = signed_distance_transform([cast_res cast_res cast_res]); % periodic distance transform         
+        DT = DT(N_azim+1:2*N_azim);        
+        DT_set = [DT_set ; DT ];    
+        
+       
+        if sum(DT==inf) % in this case, no occlusion occurs
+            vis_cost = zeros(1,N_azim);
+            vis_cost_set(t,:) = vis_cost;
+        else
+            vis_cost = max(DT) - DT + 1;         
+            vis_cost_set(t,:) = vis_cost;               
+        end
+        
+        
+    end
+    % save for each agent 
+    vis_cost_sets{n} = vis_cost_set;
+    DT_sets{n} = DT_set;
+    
+end
+
+%% Phase1 : feasible region convex division for LP problem 
+
+% for now, the feasible region (search space) for solving discrete path is just rectangle
 % (TODO: extension for general affine region)
+
 H = length(target_xs);
 x_range = 12;
 y_range = 6;
@@ -50,52 +81,143 @@ feasible_domain_y = [tracker(2) - y_range/2  tracker(2)  + y_range/2];
 yl = feasible_domain_y(1);
 yu = feasible_domain_y(2);
 
+search_spec.x_dom = [xl,xu];
+search_spec.y_dom = [yl yu];
+
 % plot the problem 
 show(map)
 hold on 
-plot(target_xs,target_ys,'r*')
+plot(target1_xs,target1_ys,'r^-','LineWidth',2)
+plot(target2_xs,target2_ys,'r^-','LineWidth',2)
 plot(tracker(1),tracker(2),'ko')
 patch([xl xu xu xl],[yl yl yu yu],'red','FaceAlpha',0.1)
 
-% A_sub, b_sub : inequality matrix of each sub division region (sigma Nh  pair)
-Nh = zeros(1,H); % we also invesigate number of available regions per each time step 
-angles = linspace(0,2*pi,N_azim+1);
-S = [];
-A_sub  = {};
-b_sub = {};
-N_vis_show = 3; % shows N largest vis score 
-d_ref = norm([target_xs(1) target_ys(1)]' - tracker);
+color_set = {'g','b'};
+visi_info_set = {};
 
-for h = 1:H
-    Nk = 0; % initialize number of valid region
+% let's investigate inequality matrix for each time step 
+for n = 1:N_target
+    % target path 
+    target_xs = targets_xs(n,:);
+    target_ys = targets_ys(n,:);
+    
+    % A_sub, b_sub : inequality matrix of each sub division region (only available region)
+    Nh = zeros(1,H); % we also invesigate number of available regions per each time step 
+    angles = linspace(0,2*pi,N_azim+1);
+    S = []; % flattened visibility score for easy computation in optimization     
+    S_h = {}; % sorted way, this structure has same order  
+    A_sub  = {};
+    b_sub = {};
+    N_vis_show = 3; % shows N largest vis score 
+    for h = 1:H
+        Nk = 0; % initialize number of valid region
+        for k = 1:N_azim    
+            % Bounding lines of the k th pizza segment !
+            theta1 = 2*pi/N_azim * (k-1);
+            theta2 = 2*pi/N_azim * (k);        
+            v1 = [cos(theta1), sin(theta1)]'; 
+            v2 = [cos(theta2) , sin(theta2)]'; 
+            % If this holds, then one of the two line is in the box 
+            if ( is_in_box(v1,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) || is_in_box(v2,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) )
+                if(DT_sets{n}(h,k)) % occlusion and collision rejection
+                    [A,b] = get_ineq_matrix([target_xs(h) ; target_ys(h)],v1,v2);        
+                    Nk = Nk +1;
+                    A_sub{h}{Nk} = A; b_sub{h}{Nk}=b; % inequality constraint
+                    S=[S vis_cost_sets{n}(h,k)]; % visbiility cost of the region 
+                    S_h{h}{Nk} = vis_cost_sets{n}(h,k); % 
+                end
+            end          
+        end
+
+        if (sum(vis_cost_sets{n}(h,:))) % then, every bearing direction is just ok             
+            N_vis_show = 3;
+        else
+            N_vis_show = N_azim;
+        end
         
-    for k = 1:N_azim    
-        % Bounding lines of the k th pizza segment !
-        theta1 = 2*pi/N_azim * (k-1);
-        theta2 = 2*pi/N_azim * (k);        
-        v1 = [cos(theta1), sin(theta1)]'; 
-        v2 = [cos(theta2) , sin(theta2)]'; 
-        % If this holds, then one of the two line is in the box 
-        if ( is_in_box(v1,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) || is_in_box(v2,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) )
-            if(DT_set(h,k)) % occlusion and collision rejection
-                [A,b] = get_ineq_matrix([target_xs(h) ; target_ys(h)],v1,v2);        
-                Nk = Nk +1;
-                A_sub{h}{Nk} = A; b_sub{h}{Nk}=b; % inequality constraint
-                S=[S vis_cost_set(h,k)]; % visbiility cost of the region 
+        [sorted_val, indices] = sort(vis_cost_sets{n}(h,:));
+        goods = indices(1:N_vis_show);        
+        for i = 1:N_vis_show
+            good = goods(i);
+            alpha_val = 1/sorted_val(i);
+            if alpha_val == inf 
+                alpha_val = 0.3;                
             end
-        end          
+            draw_circle_sector([target_xs(h) target_ys(h)],2*pi/N_azim * (good-1),2*pi/N_azim * (good),d_ref/2,color_set{n},alpha_val*0.3);        
+        end
+        
+        Nh(h) = Nk; % save the available number of region
     end
+
+    visi_info.Nh = Nh;
+    visi_info.A_sub = A_sub;
+    visi_info.b_sub = b_sub; 
+    visi_info.S_h = S_h;   
+    visi_info_set{n} = visi_info; % save the visibility information 
     
-    [sorted_val, indices] = sort(vis_cost_set(h,:));
-    goods = indices(1:N_vis_show);
-   
-    for i = 1:N_vis_show
-        good = goods(i);
-        draw_circle_sector([target_xs(h) target_ys(h)],2*pi/N_azim * (good-1),2*pi/N_azim * (good),d_ref,'g',1/sorted_val(i)*0.3);        
-    end
-    
-    Nh(h) = Nk; % save the available number of region
 end
+%% Phase2 : Combination for divided regions of each agent - indexing 
+
+% intersection region of the two pizza corresponding to each target
+
+A_div = {};
+b_div = {};
+vis_cost_set = {};
+Nk = 0; % number of valid regions 
+ratio = 1; % importance ratio of vis2 to vis1
+for h = 1:H    
+    A_div{h} = {};
+    b_div{h} = {};
+    Nk = 0;
+    for i = 1:visi_info_set{1}.Nh(h)
+        for j = 1:visi_info_set{2}.Nh(h)
+            % feasibility test for the intersection region of the two
+            % pizzas
+            
+            Ai = visi_info_set{1}.A_sub{h}{i};
+            bi = visi_info_set{1}.b_sub{h}{i};
+            vis_cost1 = visi_info_set{1}.S_h{h}{i};
+            
+            Aj = visi_info_set{2}.A_sub{h}{j};
+            bj = visi_info_set{2}.b_sub{h}{j};
+            vis_cost2 = visi_info_set{2}.S_h{h}{j};
+                              
+            A_intsec = [Ai ; Ai];
+            b_intsec = [bi ; bj];
+            
+            [~,~,flag]=linprog([],[Ai ; Ai],[bi ; bj],[],[],[xl yl],[xu yu]);
+            
+                       
+            if (flag ~= -2) % feasibility test pass
+               % let's keep this region
+               Nk = Nk + 1;
+               A_div{h}{Nk} = A_intsec;
+               b_div{h}{Nk} = b_intsec; 
+               vis_cost_set{h}{Nk} =  vis_cost1 + ratio * vis_cost2; % let's assign the visibility cost to here                        
+            end
+            
+        end        
+    end
+end
+
+
+%% Plot faesible segment 
+figure
+for h =1 :H 
+    subplot(2,H/2,h)
+    for k = 1:length(vis_cost_set{h})
+        
+        alpha = 1/vis_cost_set{h}{k};        
+        plot_feasible(A_div{h}{k},b_div{h}{k},[0 0],[xl yl]',[xu yu]', ...
+            'backgroundcolor',[0.1 0.8 0.1],...
+            'alpha',alpha);        
+    end
+    
+end
+    
+    
+    
+
 
 %% Generation of optimal sequence : everything was converted into LP (refer lab note)
 
@@ -292,18 +414,29 @@ hold on
 target_pos=plot(target_xs(h),target_ys(h),'r^','MarkerSize',10,'MarkerFaceColor','r');    
 patch([xl xu xu xl],[yl yl yu yu],'red','FaceAlpha',0.1)
 
-
+Nk = 0;
 for k = 1:N_azim    
         % Bounding lines of the k th pizza segment !    
         draw_circle_sector([target_xs(h) target_ys(h)],2*pi/N_azim * (k-1),2*pi/N_azim * (k),10,'g',DT_set(h,k)/5); 
         text_theta = (2*pi/N_azim * (k-1) + 2*pi/N_azim * (k))/2;
         if (DT_set(h,k) )
-        text_str = sprintf('$z_{%d%d}$',h,k);
-        text(target_xs(h) + 2*cos(text_theta) , target_ys(h) + sin(text_theta),text_str,'Interpreter','latex')
+            Nk = Nk + 1;
+            text_str = sprintf('$z_{%d%d}$',h,Nk);
+%             text(target_xs(h) + 3*cos(text_theta)  , target_ys(h) +3* sin(text_theta),text_str,'Interpreter','latex','FontSize',20)
+        end
 end
 
-MILP_path_plot3=plot(waypoints_x,waypoints_y,'ms-','LineWidth',1);
-plot(waypoints_x(h),waypoints_y(h),'ms','MarkerSize',10,'MarkerFaceColor','m');
+MILP_path_plot3=plot(waypoints_x,waypoints_y,'ms-','LineWidth',2);
+plot(waypoints_x(h),waypoints_y(h),'ms','MarkerSize',15,'MarkerFaceColor','m');
+
+text_str = sprintf('$x_{%d} , y_{%d} $',h,h);
+text_str2 = sprintf('$x_{g,%d} , y_{g,%d} $',h,h);
+
+text(waypoints_x(h) , waypoints_y(h) -0.5,text_str,'Interpreter','latex','FontSize',20)
+text(target_xs(h) +0.3 , target_ys(h) ,text_str2,'Interpreter','latex','FontSize',20)
+
+
+leg=legend([target_pos,MILP_path_plot3],{'target','wpts seq'},'Interpreter','latex','fontsize', 15);
 
 title(sprintf('$ t_{%d}$',h),'Interpreter','latex','FontSize',20)
 set(gca,'XLabel',[])
