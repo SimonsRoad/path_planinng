@@ -1,6 +1,6 @@
 %% Description 
 % this code simulates a scenario. 
-addpath('C:\Users\junbs\Documents\path_planinng\ASAP1','C:\Users\junbs\Documents\path_planinng\multi_target_tracking\');
+addpath('C:\Users\junbs\Documents\path_planinng\ASAP1','C:\Users\junbs\Documents\path_planinng\multi_target_tracking\','C:\Users\junbs\Documents\path_planinng\plotregion\');
 
 
 %% Map setting
@@ -23,12 +23,13 @@ vis_cost_sets = {};
 
 %% Get score maps of each target during a prediction horizon 
 d_ref = 2;
+N_azim_set = [10,11];
 for n = 1:N_target 
     target_xs = targets_xs(n,:);
     target_ys = targets_ys(n,:);
     
     vis_cost_set = []; % row : time / col : angle index 
-    N_azim = 10;
+    N_azim = N_azim_set(n);
     DT_set = [];
     for t = 1:length(target_xs) % -1 is due to some mistake in set_target_tracker function 
         target_position = [target_xs(t), target_ys(t) 0]';
@@ -103,7 +104,7 @@ for n = 1:N_target
     
     % A_sub, b_sub : inequality matrix of each sub division region (only available region)
     Nh = zeros(1,H); % we also invesigate number of available regions per each time step 
-    angles = linspace(0,2*pi,N_azim+1);
+    angles = linspace(0,2*pi,N_azim_set(n)+1);
     S = []; % flattened visibility score for easy computation in optimization     
     S_h = {}; % sorted way, this structure has same order  
     A_sub  = {};
@@ -111,10 +112,10 @@ for n = 1:N_target
     N_vis_show = 3; % shows N largest vis score 
     for h = 1:H
         Nk = 0; % initialize number of valid region
-        for k = 1:N_azim    
+        for k = 1:N_azim_set(n)    
             % Bounding lines of the k th pizza segment !
-            theta1 = 2*pi/N_azim * (k-1);
-            theta2 = 2*pi/N_azim * (k);        
+            theta1 = 2*pi/N_azim_set(n) * (k-1);
+            theta2 = 2*pi/N_azim_set(n) * (k);        
             v1 = [cos(theta1), sin(theta1)]'; 
             v2 = [cos(theta2) , sin(theta2)]'; 
             % If this holds, then one of the two line is in the box 
@@ -132,7 +133,7 @@ for n = 1:N_target
         if (sum(vis_cost_sets{n}(h,:))) % then, every bearing direction is just ok             
             N_vis_show = 3;
         else
-            N_vis_show = N_azim;
+            N_vis_show = N_azim_set(n);
         end
         
         [sorted_val, indices] = sort(vis_cost_sets{n}(h,:));
@@ -143,7 +144,7 @@ for n = 1:N_target
             if alpha_val == inf 
                 alpha_val = 0.3;                
             end
-            draw_circle_sector([target_xs(h) target_ys(h)],2*pi/N_azim * (good-1),2*pi/N_azim * (good),d_ref/2,color_set{n},alpha_val*0.3);        
+            draw_circle_sector([target_xs(h) target_ys(h)],2*pi/N_azim_set(n) * (good-1),2*pi/N_azim_set(n) * (good),d_ref/2,color_set{n},alpha_val*0.3);        
         end
         
         Nh(h) = Nk; % save the available number of region
@@ -182,10 +183,10 @@ for h = 1:H
             bj = visi_info_set{2}.b_sub{h}{j};
             vis_cost2 = visi_info_set{2}.S_h{h}{j};
                               
-            A_intsec = [Ai ; Ai];
+            A_intsec = [Ai ; Aj];
             b_intsec = [bi ; bj];
             
-            [~,~,flag]=linprog([],[Ai ; Ai],[bi ; bj],[],[],[xl yl],[xu yu]);
+            [~,~,flag]=linprog([],[Ai ; Aj],[bi ; bj],[],[],[xl yl],[xu yu]);
             
                        
             if (flag ~= -2) % feasibility test pass
@@ -205,14 +206,24 @@ end
 figure
 for h =1 :H 
     subplot(2,H/2,h)
-    for k = 1:length(vis_cost_set{h})
-        
-        alpha = 1/vis_cost_set{h}{k};        
-        plot_feasible(A_div{h}{k},b_div{h}{k},[0 0],[xl yl]',[xu yu]', ...
-            'backgroundcolor',[0.1 0.8 0.1],...
-            'alpha',alpha);        
-    end
     
+            
+        show(map)
+        hold on 
+        plot(target1_xs,target1_ys,'r^-','LineWidth',2)
+        plot(target2_xs,target2_ys,'r^-','LineWidth',2)
+        plot(tracker(1),tracker(2),'ko')
+        patch([xl xu xu xl],[yl yl yu yu],'w','FaceAlpha',0.1)
+        
+    for k = 1:length(vis_cost_set{h})
+
+        
+        alpha = 1/vis_cost_set{h}{k};     % this might be inf    
+        [r,g,b]  = getRGB(vis_cost_set{h}{k},10,1);
+        plotregion(-A_div{h}{k} ,-b_div{h}{k} ,[xl yl]',[xu yu]',[r,g,b],alpha);
+
+    end
+    axis([0 10 0 10])
 end
     
     
