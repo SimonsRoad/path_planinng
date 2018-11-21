@@ -9,7 +9,7 @@ lx = 10; ly = 10; % size of map in real coordinate
 res = lx / map_dim;
 custom_map=makemap(20); % draw obstacle interactively
 % or load the simple example 
-%load('prob_setting.mat')
+load('prob_setting.mat')
 %% Generate map occupancy grid object 
 map = robotics.OccupancyGrid(flipud(custom_map),1/res);
 show(map);

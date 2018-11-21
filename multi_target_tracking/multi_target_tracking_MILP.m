@@ -90,7 +90,7 @@ show(map)
 hold on 
 plot(target1_xs,target1_ys,'r^-','LineWidth',2)
 plot(target2_xs,target2_ys,'r^-','LineWidth',2)
-plot(tracker(1),tracker(2),'ko')
+plot(tracker(1),tracker(2),'mo','MarkerFaceColor','m')
 patch([xl xu xu xl],[yl yl yu yu],'red','FaceAlpha',0.1)
 
 color_set = {'g','b'};
@@ -123,7 +123,7 @@ for n = 1:N_target
                 if(DT_sets{n}(h,k)) % occlusion and collision rejection
                     [A,b] = get_ineq_matrix([target_xs(h) ; target_ys(h)],v1,v2);        
                     Nk = Nk +1;
-                    A_sub{h}{Nk} = A; b_sub{h}{Nk}=b; % inequality constraint
+                    A_sub{h}{Nk} = A; b_sub{h}{Nk}=b; % inequality constraint                    
                     S=[S vis_cost_sets{n}(h,k)]; % visbiility cost of the region 
                     S_h{h}{Nk} = vis_cost_sets{n}(h,k); % 
                 end
@@ -163,12 +163,14 @@ end
 
 A_div = {};
 b_div = {};
+c_div = {}; % center of each convex polygorn 
 vis_cost_set = {};
 Nk = 0; % number of valid regions 
 ratio = 1; % importance ratio of vis2 to vis1
 for h = 1:H    
     A_div{h} = {};
     b_div{h} = {};
+    c_div{h} = {};
     Nk = 0;
     for i = 1:visi_info_set{1}.Nh(h)
         for j = 1:visi_info_set{2}.Nh(h)
@@ -186,14 +188,19 @@ for h = 1:H
             A_intsec = [Ai ; Aj];
             b_intsec = [bi ; bj];
             
-            [~,~,flag]=linprog([],[Ai ; Aj],[bi ; bj],[],[],[xl yl],[xu yu]);
+            A_bound = [1 0 ; -1 0 ; 0 1; 0 -1 ];
+            b_bound = [xu ; -xl ; yu ; -yl];
             
-                       
+            [~,~,flag]=linprog([],[Ai ; Aj ],[bi ; bj] ,[],[],[xl yl],[xu yu]);
+%             [~,~,flag]=linprog([],[Ai ; Aj ; A_bound],[bi ; bj; b_bounds]);
+                                   
             if (flag ~= -2) % feasibility test pass
                % let's keep this region
                Nk = Nk + 1;
                A_div{h}{Nk} = A_intsec;
                b_div{h}{Nk} = b_intsec; 
+               vertices =  con2vert([A_div{h}{Nk} ; A_bound],[b_div{h}{Nk};b_bound]);
+               c_div{h}{Nk} = mean(vertices); % center of each segment                
                vis_cost_set{h}{Nk} =  vis_cost1 + ratio * vis_cost2; % let's assign the visibility cost to here                        
             end
             
@@ -205,27 +212,35 @@ end
 %% Plot faesible segment 
 figure
 for h =1 :H 
-    subplot(2,H/2,h)
-    
-            
+    subplot(2,H/2,h)                
         show(map)
         hold on 
         plot(target1_xs,target1_ys,'r^-','LineWidth',2)
         plot(target2_xs,target2_ys,'r^-','LineWidth',2)
-        plot(tracker(1),tracker(2),'ko')
+        plot(tracker(1),tracker(2),'mo','MarkerFaceColor','m')
         patch([xl xu xu xl],[yl yl yu yu],'w','FaceAlpha',0.1)
         
     for k = 1:length(vis_cost_set{h})
-
-        
+                
         alpha = 1/vis_cost_set{h}{k};     % this might be inf    
         [r,g,b]  = getRGB(vis_cost_set{h}{k},10,1);
         plotregion(-A_div{h}{k} ,-b_div{h}{k} ,[xl yl]',[xu yu]',[r,g,b],alpha);
-
+        plot(c_div{h}{k}(1),c_div{h}{k}(2),'ks','MarkerSize',1.5,'MarkerFaceColor','k');
     end
     axis([0 10 0 10])
 end
     
+%% Astar for the path of region segments
+
+
+
+
+
+
+
+
+
+
     
     
 
