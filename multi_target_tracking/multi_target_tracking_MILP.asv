@@ -210,7 +210,7 @@ end
 
 
 %% Plot faesible segment 
-figure(1)
+figure
 for h =1 :H 
     subplot(2,H/2,h)                
         show(map)
@@ -296,22 +296,14 @@ Astar_G=Astar_G.addedge(node1_list,node2_list, (weight_list));
 
 
 %% plotting the planned path 
-figure(1)
-hold on 
+
 idx_seq = [];
 for pnt_idx = path_idx
     pnt_idx_convert=cell2mat(pnt_idx);
     idx_seq = [idx_seq str2num(pnt_idx_convert(4:end))];        
 end   
-idx_seq = idx_seq(2:end);
-for h = 1:H    
-    subplot(2,2,h)
-    plotregion(-A_div{h}{idx_seq(h)} ,-b_div{h}{idx_seq(h)} ,[xl yl]',[xu yu]',[1,0,1],0.5);
-    axis([0 10 0 10])
-end
-
-
-
+idx_seq = idx_seq(1:end);    
+path_pnts = [tracker pnts_grid(:,idx_seq(2:end))];
 
 
 
