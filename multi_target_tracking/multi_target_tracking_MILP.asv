@@ -1,29 +1,34 @@
 %% Description 
 % this code simulates a scenario. 
-addpath('C:\Users\JBS\Documents\GitHub\path_planinng\ASAP1','C:\Users\JBS\Documents\GitHub\path_planinng\multi_target_tracking\','C:\Users\JBS\Documents\GitHub\path_planinng\plotregion\');
-
-
+%%% desktop version 
+% addpath('C:\Users\JBS\Documents\GitHub\path_planinng\ASAP1','C:\Users\JBS\Documents\GitHub\path_planinng\multi_target_tracking\','C:\Users\JBS\Documents\GitHub\path_planinng\plotregion\');
+%%% laptop version 
+addpath('C:\Users\junbs\Documents\path_planinng\ASAP1','C:\Users\junbs\Documents\path_planinng\multi_target_tracking\','C:\Users\junbs\Documents\path_planinng\plotregion\');
 %% Map setting
 map_dim = 20;
 lx = 10; ly = 10; % size of map in real coordinate 
 res = lx / map_dim;
-custom_map=makemap(20); % draw obstacle interactively
-
+% custom_map=makemap(20); % draw obstacle interactively
+load('problem_settings.mat')
 %% Generate map occupancy grid object  and path of the two targets
 map = robotics.OccupancyGrid(flipud(custom_map),1/res);
 show(map);
-[target1_xs,target1_ys,target2_xs,target2_ys,tracker]=set_target_tracker2; % assign path of two targets and tracker
+% [target1_xs,target1_ys,target2_xs,target2_ys,tracker]=set_target_tracker2; % assign path of two targets and tracker
 
 % packing the target paths (should be same length)
 targets_xs = [target1_xs ; target2_xs];
 targets_ys = [target1_ys ; target2_ys];
+
+%% 
 N_target = 2; % only two targets will be considered
+target1_xs = targets_xs(1,:); target1_ys = targets_ys(1,:);
+target2_xs  = targets_xs(2,:); target2_ys = targets_ys(2,:);
 
 vis_cost_sets = {};
 
 %% Get score maps of each target during a prediction horizon 
 d_ref = 2;
-N_azim_set = [10,11];
+N_azim_set = [10,10];
 for n = 1:N_target 
     target_xs = targets_xs(n,:);
     target_ys = targets_ys(n,:);
@@ -33,16 +38,47 @@ for n = 1:N_target
     DT_set = [];
     for t = 1:length(target_xs) % -1 is due to some mistake in set_target_tracker function 
         target_position = [target_xs(t), target_ys(t) 0]';
-
+        
 
         ray_len = norm(target_position(1:2) - tracker); % should decide this length 
         ray_len = d_ref;
         ray_lens = ray_len * ones(N_azim,1); 
         angles = linspace(0,2*pi,N_azim+1);
         angles(end) = [];
-
+        
         cast_res = zeros(1,N_azim); % 1 for hit and 0 for free rays   
-        collisionPts=map.rayIntersection(target_position,angles,ray_len); % the NaN elements are not hit, 
+        
+        
+        % inter occlusion prevention 
+        if n == 1 % other agent will be 2
+            other_agent_loc = [targets_xs(2,t) targets_ys(2,t)];
+        else % other agent will be 1            
+            other_agent_loc = [targets_xs(1,t) targets_ys(1,t)];
+        end
+        map_h = copy(map);
+
+        % should do this twice 
+        map_h.updateOccupancy(other_agent_loc,1);
+        map_h.updateOccupancy(other_agent_loc,1);
+
+        move_x = [-1,0,1];
+        move_y = [-1,0,1];
+        
+        % for clarity, we should inflate the occupancy around the other (but too conservative)
+        % agent 
+%         
+%         for i = 1:3
+%             for j = 1:3
+%                 other_agent_loc_around = other_agent_loc + res * [move_x(i) move_y(j)];
+%                  % should do this twice 
+%                 map_h.updateOccupancy(other_agent_loc_around,1);
+%                 map_h.updateOccupancy(other_agent_loc_around,1);
+%             end
+%         end
+%         
+                            
+                
+        collisionPts=map_h.rayIntersection(target_position,angles,ray_len); % the NaN elements are not hit, 
         collisionIdx=find(~isnan(collisionPts(:,1))); % collided index 
         cast_res(collisionIdx) = 1;
 
@@ -54,12 +90,23 @@ for n = 1:N_target
         if sum(DT==inf) % in this case, no occlusion occurs
             vis_cost = zeros(1,N_azim);
             vis_cost_set(t,:) = vis_cost;
-        else
+        else % some ray hits
             vis_cost = max(DT) - DT + 1;         
-            vis_cost_set(t,:) = vis_cost;               
+%             vis_cost_extended = [vis_cost vis_cost(1)];     
+            vis_cost_set(t,:) = vis_cost;
+
+            
+%             for k = 1: N_azim
+%                 if (vis_cost(k)==0 || vis_cost(k+1)==0 )
+%                     vis_cost_set(t,k) = 1;             
+%                 else
+%                     vis_cost_set(t,k) = (vis_cost(k) + vis_cost(k+1))/2;    
+%                 end
+%                 
+%             end
+            
         end
-        
-        
+                
     end
     % save for each agent 
     vis_cost_sets{n} = vis_cost_set;
@@ -74,7 +121,7 @@ end
 
 H = length(target_xs);
 x_range = 12;
-y_range = 6;
+y_range = 10;
 feasible_domain_x = [tracker(1) - x_range/2 tracker(1) + x_range/2];
 xl = feasible_domain_x(1);
 xu = feasible_domain_x(2);
@@ -120,7 +167,7 @@ for n = 1:N_target
             v2 = [cos(theta2) , sin(theta2)]'; 
             % If this holds, then one of the two line is in the box 
             if ( is_in_box(v1,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) || is_in_box(v2,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) )
-                if(DT_sets{n}(h,k)) % occlusion and collision rejection
+                if(DT_sets{n}(h,k) && DT_sets{n}(h,min(k+1,N_azim_set(n)))) % occlusion and collision rejection
                     [A,b] = get_ineq_matrix([target_xs(h) ; target_ys(h)],v1,v2);        
                     Nk = Nk +1;
                     A_sub{h}{Nk} = A; b_sub{h}{Nk}=b; % inequality constraint                    
@@ -160,10 +207,12 @@ end
 %% Phase2 : Combination for divided regions of each agent - indexing 
 
 % intersection region of the two pizza corresponding to each target
-
+FOV = 160 * pi/180;
 A_div = {};
 b_div = {};
 c_div = {}; % center of each convex polygorn 
+v_div = {}; % convex vertex 
+
 vis_cost_set = {};
 Nk = 0; % number of valid regions 
 ratio = 1; % importance ratio of vis2 to vis1
@@ -171,6 +220,7 @@ for h = 1:H
     A_div{h} = {};
     b_div{h} = {};
     c_div{h} = {};
+    v_div{h} = {};
     Nk = 0;
     for i = 1:visi_info_set{1}.Nh(h)
         for j = 1:visi_info_set{2}.Nh(h)
@@ -192,16 +242,28 @@ for h = 1:H
             b_bound = [xu ; -xl ; yu ; -yl];
             
             [~,~,flag]=linprog([],[Ai ; Aj ],[bi ; bj] ,[],[],[xl yl],[xu yu]);
+            
 %             [~,~,flag]=linprog([],[Ai ; Aj ; A_bound],[bi ; bj; b_bounds]);
-                                   
+            
             if (flag ~= -2) % feasibility test pass
-               % let's keep this region
-               Nk = Nk + 1;
-               A_div{h}{Nk} = A_intsec;
-               b_div{h}{Nk} = b_intsec; 
-               vertices =  con2vert([A_div{h}{Nk} ; A_bound],[b_div{h}{Nk};b_bound]);
-               c_div{h}{Nk} = mean(vertices); % center of each segment                
-               vis_cost_set{h}{Nk} =  vis_cost1 + ratio * vis_cost2; % let's assign the visibility cost to here                        
+               % let's keep this region for now 
+               % let's investigate the FOV constraint 
+               vertices = con2vert([A_intsec; A_bound],[b_intsec ; b_bound]); % the vertices of this region   
+               vertices = vertices + 0.1 * (mean(vertices) - vertices);
+               
+               % we reject the segment if any of them is included in the
+               % bline region                
+               if (sum(is_in_blind([targets_xs(1,h) targets_ys(1,h)],[targets_xs(2,h) targets_ys(2,h)],FOV,vertices')) == 0)               
+                   
+                   Nk = Nk + 1;                     
+                   A_div{h}{Nk} = A_intsec;
+                   b_div{h}{Nk} = b_intsec; 
+                   v_div{h}{Nk} =  vertices;
+                   c_div{h}{Nk} = mean(vertices); % center of each segment                
+
+                   
+                   vis_cost_set{h}{Nk} =  vis_cost1 + ratio * vis_cost2; % let's assign the visibility cost to here    
+               end
             end
             
         end        
@@ -210,18 +272,28 @@ end
 
 
 %% Plot faesible segment 
-figure
+figure(1)
 for h =1 :H 
     subplot(2,H/2,h)                
         show(map)
         hold on 
         plot(target1_xs,target1_ys,'r^-','LineWidth',2)
+       
+        plot(target1_xs(h),target1_ys(h),'rs','LineWidth',3,'MarkerSize',10)
+
         plot(target2_xs,target2_ys,'r^-','LineWidth',2)
+        
+        plot(target2_xs(h),target2_ys(h),'rs','LineWidth',3,'MarkerSize',10)
+
         plot(tracker(1),tracker(2),'mo','MarkerFaceColor','m')
         patch([xl xu xu xl],[yl yl yu yu],'w','FaceAlpha',0.1)
         
-    for k = 1:length(vis_cost_set{h})
-                
+        % FOV blind region plot        
+        [~,A_blind,b_blind] = is_in_blind([target1_xs(h) target1_ys(h)],[target2_xs(h) target2_ys(h)],FOV,[]);
+        plotregion(-A_blind ,-b_blind ,[xl yl]',[xu yu]',[0,0,0]);
+
+        
+    for k = 1:length(vis_cost_set{h})                
         alpha = 1/vis_cost_set{h}{k};     % this might be inf    
         [r,g,b]  = getRGB(vis_cost_set{h}{k},10,1);
         plotregion(-A_div{h}{k} ,-b_div{h}{k} ,[xl yl]',[xu yu]',[r,g,b],alpha);
@@ -296,24 +368,48 @@ Astar_G=Astar_G.addedge(node1_list,node2_list, (weight_list));
 
 
 %% plotting the planned path 
-
+figure(1)
+hold on 
 idx_seq = [];
 for pnt_idx = path_idx
     pnt_idx_convert=cell2mat(pnt_idx);
     idx_seq = [idx_seq str2num(pnt_idx_convert(4:end))];        
 end   
-idx_seq = idx_seq(1:end);    
-path_pnts = [tracker pnts_grid(:,idx_seq(2:end))];
+idx_seq = idx_seq(2:end);
 
+conv_hull = {};
 
-
-
-
-
-
-
+for h = 1:H    
+    subplot(2,2,h)
+    plotregion(-A_div{h}{idx_seq(h)} ,-b_div{h}{idx_seq(h)} ,[xl yl]',[xu yu]',[1,0,1],0.5);
+    if h ==1 
+        vert1 = tracker';
+    else
+        vert1 = v_div{h-1}{idx_seq(h-1)};        
+    end    
+    vert2 = v_div{h}{idx_seq(h)};         
+    vert = [vert1 ; vert2];       
+    K = convhull(vert(:,1), vert(:,2));        
     
-    
+    axis([0 10 0 10])
+end
+
+
+
+
+
+
+
+
+
+
+  
+%% Generation of seq of  convex hull 
+
+
+
+
+
 
 
 %% Generation of optimal sequence : everything was converted into LP (refer lab note)
