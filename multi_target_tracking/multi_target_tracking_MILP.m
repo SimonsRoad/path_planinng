@@ -1,9 +1,9 @@
 %% Description 
 % this code simulates a scenario. 
 %%% desktop version 
-% addpath('C:\Users\JBS\Documents\GitHub\path_planinng\ASAP1','C:\Users\JBS\Documents\GitHub\path_planinng\multi_target_tracking\','C:\Users\JBS\Documents\GitHub\path_planinng\plotregion\');
+addpath('C:\Users\JBS\Documents\GitHub\path_planinng\ASAP1','C:\Users\JBS\Documents\GitHub\path_planinng\multi_target_tracking\','C:\Users\JBS\Documents\GitHub\path_planinng\plotregion\');
 %%% laptop version 
-addpath('C:\Users\junbs\Documents\path_planinng\ASAP1','C:\Users\junbs\Documents\path_planinng\multi_target_tracking\','C:\Users\junbs\Documents\path_planinng\plotregion\');
+% addpath('C:\Users\junbs\Documents\path_planinng\ASAP1','C:\Users\junbs\Documents\path_planinng\multi_target_tracking\','C:\Users\junbs\Documents\path_planinng\plotregion\');
 %% Map setting
 map_dim = 20;
 lx = 10; ly = 10; % size of map in real coordinate 
@@ -11,7 +11,7 @@ res = lx / map_dim;
 % custom_map=makemap(20); % draw obstacle interactively
 load('problem_settings.mat')
 %% Generate map occupancy grid object  and path of the two targets
-map = robotics.OccupancyGrid(flipud(custom_map),1/res);
+% map = robotics.OccupancyGrid(flipud(custom_map),1/res);
 show(map);
 % [target1_xs,target1_ys,target2_xs,target2_ys,tracker]=set_target_tracker2; % assign path of two targets and tracker
 
@@ -379,9 +379,24 @@ idx_seq = idx_seq(2:end);
 
 conv_hull = {};
 
+waypoint_polygon_seq = {};
+corridor_polygon_seq = {};
+
+
 for h = 1:H    
     subplot(2,2,h)
     plotregion(-A_div{h}{idx_seq(h)} ,-b_div{h}{idx_seq(h)} ,[xl yl]',[xu yu]',[1,0,1],0.5);
+    
+    % 2D version 
+%     waypoint_polygon_seq{h}.A = A_div{h}{idx_seq(h)};
+%     waypoint_polygon_seq{h}.b = b_div{h}{idx_seq(h)};
+    
+    % 3D version 
+    waypoint_polygon_seq{h}.A = [A_div{h}{idx_seq(h)} zeros(size(A_div{h}{idx_seq(h)},1),1)];
+    waypoint_polygon_seq{h}.b =[b_div{h}{idx_seq(h)}];
+    
+       
+    
     if h ==1 
         vert1 = tracker';
     else
@@ -389,12 +404,43 @@ for h = 1:H
     end    
     vert2 = v_div{h}{idx_seq(h)};         
     vert = [vert1 ; vert2];       
-    K = convhull(vert(:,1), vert(:,2));       
+    K = convhull(vert(:,1), vert(:,2));              
     patch(vert(K,1), vert(K,2),[0 0 0],'EdgeColor','g','LineWidth',4,'FaceAlpha',0.1);     
+    
+    [A_corr,b_corr]=vert2con(vert(K,:));
+    % corridor connecting each waypoint polygon 
+    
+%     corridor_polygon_seq{h}.A =[A_corr] ;
+%     corridor_polygon_seq{h}.b = [b_corr]; 
+    
+    corridor_polygon_seq{h}.A =[A_corr zeros(size(A_corr,1),1)] ;
+    corridor_polygon_seq{h}.b = b_corr;        
     axis([0 10 0 10])
 end
+
+% save('polygon_seq','waypoint_polygon_seq','corridor_polygon_seq');
+
   
-%% Generation of seq of convex hull 
+%% Generation of smooth path (currently, the convex hull is assumed to be collision free, additional modification required)
+
+ts= [0 1 2 3 4];
+
+X0 = [tracker;0];
+Xdot0 = zeros(3,1);
+Xddot0 = zeros(3,1);
+
+
+% smooth path generation in the corrideor 
+[pxs,pys,pzs]=min_jerk_ineq(ts,X0,Xdot0,Xddot0,waypoint_polygon_seq,corridor_polygon_seq);
+
+% draw path 
+figure(1) 
+for h = 1:H
+    subplot(2,2,h)
+    hold on
+    plot_poly_spline(ts,reshape(pxs,[],1),reshape(pys,[],1),reshape(pzs,[],1))
+    axis equal
+end
 
 
 
