@@ -1,7 +1,7 @@
 lx=10; ly=10; 
 global real_map 
 
-obs_x=[7 5 2 8]; scale_x=[3 0.2 2 2];
+obs_x=[7 5 2 8]; scale_x=[1.4 0.2 2 2];
 obs_y=[6.6 9 4 1.5]; scale_y=[0.2 1 0.3 1.5];
 
 global dx dy 
@@ -18,7 +18,6 @@ for I =1:Nobs
     obstacle=[reshape(xs,[],1) reshape(ys,[],1)];
     setOccupancy(real_map,obstacle,1)
 end
-
 
 figure
 real_map.show()
@@ -131,9 +130,6 @@ for t=1:100
     
     rayinsertion([x1 0],angle_min,angle_max,Nray,maxrange)
     rayinsertion([x2 0],angle_min,angle_max,Nray,maxrange)
-
-
-    
     
     [obstacle_i,obstacle_j]=find(occu_map.occupancyMatrix>0.7);
 

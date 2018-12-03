@@ -158,7 +158,6 @@ end % target
 [azim_grid,elev_grid]=meshgrid(azim_set,elev_set);
 azim_grid = reshape(azim_grid,1,[]);
 elev_grid = reshape(elev_grid,1,[]);
-color_set = [1 0 0;0 0 1]; % for 1st target - red / 2nd target - blue 
 
 for n = 1: N_target         
         for h = 1:length(target1_xs)        
@@ -177,12 +176,9 @@ for n = 1: N_target
                 alpha_val = 1/sorted_val(i);
                 xc = [target_xs(h) target_ys(h) 0.5];
                 r = d_ref/2;
-                
                 d_azim = azim_set(2) - azim_set(1);                                
-                d_elev = elev_set(2) - elev_set(1);
-                
-                draw_sphere_sector(xc,r,azim_grid(good) - d_azim/2,azim_grid(good) + d_azim/2,...
-                    elev_grid(good) -d_elev/2, elev_grid(good) + d_elev/2, color_set(n,:),alpha_val )
+                d_elev = elev_set(2) - elev
+                draw_sphere_sector(xc,r,azim_grid(good) - dtheta/2,azim_grid(good) + dtheta/2 ,  )
                 draw_circle_sector(xc,r,2*pi/N_azim_set(n) * (good-1),2*pi/N_azim_set(n) * (good),d_ref/2,color_set{n},alpha_val*0.3);        
             end
         end

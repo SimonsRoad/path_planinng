@@ -4,7 +4,11 @@ global dx dy Nx Ny
 
 [ix,iy]=find(occu_map.occupancyMatrix()>0.4);
 
+
+
 MAP=2*(ones(Nx,Ny));
+
+
 
 for row=1:length(ix)
 MAP(iy(row),Ny-ix(row)+1)=-1;
@@ -12,10 +16,13 @@ end
 xTarget=floor(pf(1)/dx); yTarget=floor(pf(2)/dy);
 MAP(xTarget,yTarget)=0;%Initialize MAP with location of the target
 
-MAP(xTarget-1,yTarget)=0;
-MAP(xTarget+1,yTarget)=0;
-% MAP(xTarget,yTarget+1)=0;
-% MAP(xTarget,yTarget-1)=0;
+r = occu_map.GridSize(1);
+c =occu_map.GridSize(2);
+
+MAP(max(xTarget-1,1),yTarget)=0;
+MAP(min(xTarget+1,r),yTarget)=0;
+MAP(xTarget,min(yTarget+1,c))=0;
+MAP(xTarget,max(yTarget-1,1))=0;
 
 xStart=floor(p0(1)/dx);%Starting Position
 yStart=floor(p0(2)/dy);%Starting Position
