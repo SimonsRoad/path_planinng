@@ -68,8 +68,8 @@ vis_cost_sets = {};
 
 %% Get score maps of each target during a prediction horizon
 d_ref = 2;
-N_azim = [10,10];
-N_elev = [6, 6];
+N_azim = [10,11];
+N_elev = [6, 7];
 
 for n = 1:N_target 
     target_xs = targets_xs(n,:);
@@ -155,12 +155,20 @@ end % target
 
 %% Phase 0: plot the visibility score 
 
-[elev_grid,azim_grid]=meshgrid(elev_set,azim_set);
-azim_grid = reshape(azim_grid,1,[]);
-elev_grid = reshape(elev_grid,1,[]);
+
 color_set = [1 0 0;0 0 1]; % for 1st target - red / 2nd target - blue 
 
 for n = 1: N_target         
+    
+
+        azim_set = linspace(0,2*pi,N_azim(n)+1);
+        azim_set = azim_set(1:end-1);
+        elev_set = linspace(pi/8,pi/3,N_elev(n));
+        
+        [elev_grid,azim_grid]=meshgrid(elev_set,azim_set);
+        azim_grid = reshape(azim_grid,1,[]);
+        elev_grid = reshape(elev_grid,1,[]);
+
         for h = 1:length(target1_xs)        
             
             if (sum(sum(vis_cost_sets{n}{h})) ~= numel(vis_cost_sets{n}{h})) % then, every bearing direction is just ok             
@@ -222,6 +230,7 @@ search_spec.y_dom = [yl yu];
 search_spec.z_dom = [zl zu];
 
 % plot the serach region 
+figure
 show(map3)
 target1_zs = ones(1,H);
 target2_zs = ones(1,H);
@@ -239,6 +248,13 @@ visi_info_set = {};
 
 % let's investigate inequality matrix for each time step 
 for n = 1:N_target
+    
+    
+    azim_set = linspace(0,2*pi,N_azim(n)+1);
+    azim_set = azim_set(1:end-1);
+    elev_set = linspace(pi/8,pi/3,N_elev(n));
+
+    
     % target path 
     target_xs = targets_xs(n,:);
     target_ys = targets_ys(n,:);
@@ -303,7 +319,7 @@ for n = 1:N_target
     visi_info_set{n} = visi_info; % save the visibility information     
 end
 
-%% Phase2 : Combination for divided regions of each agent - indexing
+%% Phase3 : Combination for divided regions of each agent - indexing
 %%
 % intersection region of the two polyhydra corresponding to each target
 FOV = 160 * pi/180;
@@ -337,8 +353,13 @@ for h = 1:H
             A_intsec = [Ai ; Aj];
             b_intsec = [bi ; bj];
             
+%             % please wait 
+%             verr1=con2vert([Ai; A_bound],[bi ; b_bound]);
+%             verr2=con2vert([Aj; A_bound],[bj ; b_bound]);
+            
+                        
             A_bound = [1 0 0; -1 0 0; 0 1 0; 0 -1 0;0 0 1; 0 0 -1];
-            b_bound = [xu ; -xl ; yu ; -yl ; zu -zl];
+            b_bound = [xu ; -xl ; yu ; -yl ; zu ; -zl];
             
             [~,~,flag]=linprog([],[Ai ; Aj ],[bi ; bj] ,[],[],[xl yl zl],[xu yu zu]);
             
@@ -346,23 +367,38 @@ for h = 1:H
             if (flag ~= -2) % feasibility test pass
                % let's keep this region for now 
                % let's investigate the FOV constraint 
-               vertices = con2vert([A_intsec; A_bound],[b_intsec ; b_bound]); % the vertices of this region   
+% %               vertices = con2vert([A_bound;A_intsec ],[;b_bound ;b_intsec]); % the vertices of this region   
+               
+                
+                % In case of 3D, the intersection region of two polyhydron
+                % can be 2D, which can paralyze the code 
+                
+               try  
+                    vertices = lcon2vert([A_bound;A_intsec ],[;b_bound ;b_intsec]); % the vertices of this region   
+               catch
+                    vertices = [];
+               end
+               
+               
+               if ~isempty(vertices)
+               
                vertices = vertices + 0.1 * (mean(vertices) - vertices);
                
                % we reject the segment if any of them is included in the blind region    
-               if (sum(is_in_blind([targets_xs(1,h) targets_ys(1,h)],[targets_xs(2,h) targets_ys(2,h)],FOV,vertices')) == 0)               
+               height = 1;
+               if (sum(is_in_blind3([targets_xs(1,h) targets_ys(1,h) height],[targets_xs(2,h) targets_ys(2,h) height],FOV,vertices',0)) == 0)               
                    
                    Nk = Nk + 1;                     
                    A_div{h}{Nk} = A_intsec;
                    b_div{h}{Nk} = b_intsec; 
                    v_div{h}{Nk} =  vertices;
                    c_div{h}{Nk} = mean(vertices); % center of each segment                
-
                    
                    vis_cost_set{h}{Nk} =  vis_cost1 + ratio * vis_cost2; % let's assign the visibility cost to here    
                end
-            end
-            
+               end
+            end % feasibility test pass
+                        
         end        
     end
 end
@@ -381,19 +417,19 @@ for h =1 :H
         
         plot(target2_xs(h),target2_ys(h),'rs','LineWidth',3,'MarkerSize',10)
 
-        plot(tracker(1),tracker(2),'mo','MarkerFaceColor','m')
-        patch([xl xu xu xl],[yl yl yu yu],'w','FaceAlpha',0.1)
+        plot3(tracker(1),tracker(2),tracker(3),'mo','MarkerFaceColor','m')
+        draw_box([xl yl zl],[xu yu zu],'k',0.1)
         
         % FOV blind region plot        
-        [~,A_blind,b_blind] = is_in_blind([target1_xs(h) target1_ys(h)],[target2_xs(h) target2_ys(h)],FOV,[]);
-        plotregion(-A_blind ,-b_blind ,[xl yl]',[xu yu]',[0,0,0]);
+        is_in_blind3([target1_xs(h) target1_ys(h) height],[target2_xs(h) target2_ys(h) height],FOV,[],1);
         
-    for k = 1:length(vis_cost_set{h})                
-        alpha = 1/vis_cost_set{h}{k};     % this might be inf    
-        [r,g,b]  = getRGB(vis_cost_set{h}{k},10,1);
-        plotregion(-A_div{h}{k} ,-b_div{h}{k} ,[xl yl]',[xu yu]',[r,g,b],alpha);
-        plot(c_div{h}{k}(1),c_div{h}{k}(2),'ks','MarkerSize',1.5,'MarkerFaceColor','k');
-    end
+        for k = 1:length(vis_cost_set{h})                
+            alpha = 1/vis_cost_set{h}{k};    
+            [r,g,b]  = getRGB(vis_cost_set{h}{k},10,1);
+            plotregion(-A_div{h}{k} ,-b_div{h}{k} ,[xl yl]',[xu yu]',[r,g,b],alpha);
+            plot(c_div{h}{k}(1),c_div{h}{k}(2),'ks','MarkerSize',1.5,'MarkerFaceColor','k');
+        end
+        
     axis([0 10 0 10])
 end
 %% Astar for the path of region segmentsd
