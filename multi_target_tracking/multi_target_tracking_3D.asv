@@ -233,7 +233,7 @@ plot3(target2_xs,target2_ys,target2_zs,'r^-','LineWidth',2)
 plot3(tracker(1),tracker(2),tracker(3),'mo','MarkerFaceColor','m')
 draw_box([xl yl zl],[xu yu zu],'k',0.1)
 
-%% Phase2: feasible 
+%% Phase2: divided region for each agend 
 
 color_set = {'g','b'};
 visi_info_set = {};
@@ -243,35 +243,59 @@ for n = 1:N_target
     % target path 
     target_xs = targets_xs(n,:);
     target_ys = targets_ys(n,:);
+    target_zs = targets_zs(n,:);
     
     % A_sub, b_sub : inequality matrix of each sub division region (only available region)
     Nh = zeros(1,H); % we also invesigate number of available regions per each time step 
-    angles = linspace(0,2*pi,N_azim_set(n)+1);
     S = []; % flattened visibility score for easy computation in optimization     
     S_h = {}; % sorted way, this structure has same order  
     A_sub  = {};
     b_sub = {};
-    N_vis_show = 3; % shows N largest vis score 
+    
     for h = 1:H
         Nk = 0; % initialize number of valid region
-        for k = 1:N_azim_set(n)    
-            % Bounding lines of the k th pizza segment !
-            theta1 = 2*pi/N_azim_set(n) * (k-1);
-            theta2 = 2*pi/N_azim_set(n) * (k);        
-            v1 = [cos(theta1), sin(theta1)]'; 
-            v2 = [cos(theta2) , sin(theta2)]'; 
-            % If this holds, then one of the two line is in the box 
-            if ( is_in_box(v1,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) || is_in_box(v2,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) )
-                if(DT_sets{n}(h,k) && DT_sets{n}(h,min(k+1,N_azim_set(n)))) % occlusion and collision rejection
+        for i  = 1:N_azim(n)    
+            for j = 1:N_elev(n)
+           
+            % 4 bounding lines of the (i,j)th ray 
+            
+            azim1 = azim_set(i) - d_azim/2;
+            azim2 = azim_set(i) + d_azim/2;
+            
+            elev1 = elev_set(j) - d_elev/2;
+            elev2 = elev_set(j) + d_elev/2;
+            
+            v = [getVec(azim1,elev1) ; getVec(azim1,elev2) ; getVec(azim2,elev2) ; getVec(azim2,elev1)];
+                        
+            % enclosing region of this polyhedra segment 
+            A  = [cross(v(1,:),v(2,:)) ; cross(v(2,:),v(3,:)) ; cross(v(3,:),v(4,:)) ; cross(v(4,:),v(1,:))];
+            b = A*[target_xs(h) target_ys(h) target_zs(h)]';
+            
+            % test 0: ray sanity check 
+            isRayOkay = DT_sets{n}{h}(i,j);
+            
+            % test 1:  feasibiility check w.r.t. search domain 
+            [~,~,flag]=linprog([],A ,b ,[],[],[xl yl zl],[xu yu zu]); 
+            isFeasible = (flag ~= -2);
+                      
+           % test 2: check around 4 corners            
+           isOcc4 = rayInsert3D(map3,tracker,azim1,elev1,d_ref,1/res/2) || ...
+               rayInsert3D(map3,tracker,azim1,elev2,d_ref,1/res/2) || ...
+               rayInsert3D(map3,tracker,azim2,elev1,d_ref,1/res/2) || ...
+               rayInsert3D(map3,tracker,azim2,elev2,d_ref,1/res/2) ;
+           
+                                
+            if (isFeasible && isRayOkay && ~(isOcc4)) % feasibile okay in the box 
                     [A,b] = get_ineq_matrix([target_xs(h) ; target_ys(h)],v1,v2);        
                     Nk = Nk +1;
                     A_sub{h}{Nk} = A; b_sub{h}{Nk}=b; % inequality constraint                    
                     S=[S vis_cost_sets{n}(h,k)]; % visbiility cost of the region 
-                    S_h{h}{Nk} = vis_cost_sets{n}(h,k); % 
-                end
-            end          
+                    S_h{h}{Nk} = vis_cost_sets{n}(h,k); %                     
+                
+            end
+            
+            end            
         end
-
 
         Nh(h) = Nk; % save the available number of region
     end
@@ -283,6 +307,8 @@ for n = 1:N_target
     visi_info_set{n} = visi_info; % save the visibility information 
     
 end
+
+
 %% Phase2 : Combination for divided regions of each agent - indexing
 %%
 % intersection region of the two pizza corresponding to each target

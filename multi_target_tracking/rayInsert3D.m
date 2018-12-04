@@ -14,7 +14,5 @@ function res = rayInsert3D(map3,ray_origin,azim,elev,ray_length,check_res)
         end
     end    
     res = 0;  
-
-    
      
 end

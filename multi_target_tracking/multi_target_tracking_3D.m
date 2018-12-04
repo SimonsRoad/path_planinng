@@ -202,7 +202,8 @@ y_range = 10;
 z_range = 8;
 
 % height of initial pose 
-tracker = [tracker ; 2]; 
+tracker = [tracker(1) ; tracker(2) ; 2]; 
+
 
 feasible_domain_x = [tracker(1) - x_range/2 tracker(1) + x_range/2];
 xl = feasible_domain_x(1);
@@ -216,11 +217,9 @@ feasible_domain_z = [tracker(3) - z_range/2  tracker(3)  + z_range/2];
 zl = feasible_domain_z(1);
 zu = feasible_domain_z(2);
 
-
 search_spec.x_dom = [xl,xu];
 search_spec.y_dom = [yl yu];
 search_spec.z_dom = [zl zu];
-
 
 % plot the serach region 
 show(map3)
@@ -233,7 +232,7 @@ plot3(target2_xs,target2_ys,target2_zs,'r^-','LineWidth',2)
 plot3(tracker(1),tracker(2),tracker(3),'mo','MarkerFaceColor','m')
 draw_box([xl yl zl],[xu yu zu],'k',0.1)
 
-%% Phase2: divided region 
+%% Phase2: valid convex segment for each agent
 
 color_set = {'g','b'};
 visi_info_set = {};
@@ -243,53 +242,74 @@ for n = 1:N_target
     % target path 
     target_xs = targets_xs(n,:);
     target_ys = targets_ys(n,:);
+    target_zs = ones(1,H);
     
     % A_sub, b_sub : inequality matrix of each sub division region (only available region)
     Nh = zeros(1,H); % we also invesigate number of available regions per each time step 
-    angles = linspace(0,2*pi,N_azim_set(n)+1);
-    S = []; % flattened visibility score for easy computation in optimization     
     S_h = {}; % sorted way, this structure has same order  
     A_sub  = {};
     b_sub = {};
     
     for h = 1:H
         Nk = 0; % initialize number of valid region
-        for k = 1:N_azim_set(n)    
-            % Bounding lines of the k th pizza segment !
-            theta1 = 2*pi/N_azim_set(n) * (k-1);
-            theta2 = 2*pi/N_azim_set(n) * (k);        
-            v1 = [cos(theta1), sin(theta1)]'; 
-            v2 = [cos(theta2) , sin(theta2)]'; 
-            % If this holds, then one of the two line is in the box 
-            if ( is_in_box(v1,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) || is_in_box(v2,[target_xs(h) ; target_ys(h)],[xl xu],[yl yu]) )
-                if(DT_sets{n}(h,k) && DT_sets{n}(h,min(k+1,N_azim_set(n)))) % occlusion and collision rejection
-                    [A,b] = get_ineq_matrix([target_xs(h) ; target_ys(h)],v1,v2);        
-                    Nk = Nk +1;
-                    A_sub{h}{Nk} = A; b_sub{h}{Nk}=b; % inequality constraint                    
-                    S=[S vis_cost_sets{n}(h,k)]; % visbiility cost of the region 
-                    S_h{h}{Nk} = vis_cost_sets{n}(h,k); % 
+        for i  = 1:N_azim(n)    
+            for j = 1:N_elev(n)
+           
+            % 4 bounding lines of the (i,j)th ray 
+            
+            azim1 = azim_set(i) - d_azim/2;
+            azim2 = azim_set(i) + d_azim/2;
+            
+            elev1 = elev_set(j) - d_elev/2;
+            elev2 = elev_set(j) + d_elev/2;
+            
+            v = [getVec(azim1,elev1) ; getVec(azim1,elev2) ; getVec(azim2,elev2) ; getVec(azim2,elev1)];
+                        
+            % enclosing region of this polyhedra segment 
+            A  = [cross(v(1,:),v(2,:)) ; cross(v(2,:),v(3,:)) ; cross(v(3,:),v(4,:)) ; cross(v(4,:),v(1,:))];
+            b = A*[target_xs(h) target_ys(h) target_zs(h)]';
+            
+            % Sanity check       
+
+                % test 0: ray sanity check 
+                isRayOkay = DT_sets{n}{h}(i,j);
+
+                % test 1:  feasibiility check w.r.t. search domain 
+                [~,~,flag]=linprog([],A ,b ,[],[],[xl yl zl],[xu yu zu]); 
+                isFeasible = (flag ~= -2);
+
+               % test 2: check around 4 corners            
+               isOcc4 = rayInsert3D(map3,tracker,azim1,elev1,d_ref,1/res/2) || ...
+                   rayInsert3D(map3,tracker,azim1,elev2,d_ref,1/res/2) || ...
+                   rayInsert3D(map3,tracker,azim2,elev1,d_ref,1/res/2) || ...
+                   rayInsert3D(map3,tracker,azim2,elev2,d_ref,1/res/2) ;
+
+                % sanity check of this region 
+                if (isFeasible && isRayOkay && ~(isOcc4)) 
+                        Nk = Nk + 1;
+                        A_sub{h}{Nk} = A; b_sub{h}{Nk}=b; % inequality constraint of this region                    
+                        S_h{h}{Nk} = vis_cost_sets{n}{h}(i,j); % cost of this region                                     
                 end
-            end          
+            
+            end            
         end
-
-
         Nh(h) = Nk; % save the available number of region
     end
 
     visi_info.Nh = Nh;
-    visi_info.A_sub = A_sub;
-    visi_info.b_sub = b_sub; 
-    visi_info.S_h = S_h;   
-    visi_info_set{n} = visi_info; % save the visibility information 
-    
+    visi_info.Ah = A_sub;
+    visi_info.bh= b_sub; 
+    visi_info.Sh = S_h;   
+    visi_info_set{n} = visi_info; % save the visibility information     
 end
+
 %% Phase2 : Combination for divided regions of each agent - indexing
 %%
-% intersection region of the two pizza corresponding to each target
+% intersection region of the two polyhydra corresponding to each target
 FOV = 160 * pi/180;
 A_div = {};
 b_div = {};
-c_div = {}; % center of each convex polygorn 
+c_div = {}; % center of each convex polyhedra
 v_div = {}; % convex vertex 
 
 vis_cost_set = {};
@@ -304,25 +324,24 @@ for h = 1:H
     for i = 1:visi_info_set{1}.Nh(h)
         for j = 1:visi_info_set{2}.Nh(h)
             % feasibility test for the intersection region of the two
-            % pizzas
+            % pizza
             
-            Ai = visi_info_set{1}.A_sub{h}{i};
-            bi = visi_info_set{1}.b_sub{h}{i};
-            vis_cost1 = visi_info_set{1}.S_h{h}{i};
+            Ai = visi_info_set{1}.Ah{h}{i};
+            bi = visi_info_set{1}.bh{h}{i};
+            vis_cost1 = visi_info_set{1}.Sh{h}{i};
             
-            Aj = visi_info_set{2}.A_sub{h}{j};
-            bj = visi_info_set{2}.b_sub{h}{j};
-            vis_cost2 = visi_info_set{2}.S_h{h}{j};
+            Aj = visi_info_set{2}.Ah{h}{j};
+            bj = visi_info_set{2}.bh{h}{j};
+            vis_cost2 = visi_info_set{2}.Sh{h}{j};
                               
             A_intsec = [Ai ; Aj];
             b_intsec = [bi ; bj];
             
-            A_bound = [1 0 ; -1 0 ; 0 1; 0 -1 ];
-            b_bound = [xu ; -xl ; yu ; -yl];
+            A_bound = [1 0 0; -1 0 0; 0 1 0; 0 -1 0;0 0 1; 0 0 -1];
+            b_bound = [xu ; -xl ; yu ; -yl ; zu -zl];
             
-            [~,~,flag]=linprog([],[Ai ; Aj ],[bi ; bj] ,[],[],[xl yl],[xu yu]);
+            [~,~,flag]=linprog([],[Ai ; Aj ],[bi ; bj] ,[],[],[xl yl zl],[xu yu zu]);
             
-%             [~,~,flag]=linprog([],[Ai ; Aj ; A_bound],[bi ; bj; b_bounds]);
             
             if (flag ~= -2) % feasibility test pass
                % let's keep this region for now 
@@ -330,8 +349,7 @@ for h = 1:H
                vertices = con2vert([A_intsec; A_bound],[b_intsec ; b_bound]); % the vertices of this region   
                vertices = vertices + 0.1 * (mean(vertices) - vertices);
                
-               % we reject the segment if any of them is included in the
-               % bline region                
+               % we reject the segment if any of them is included in the blind region    
                if (sum(is_in_blind([targets_xs(1,h) targets_ys(1,h)],[targets_xs(2,h) targets_ys(2,h)],FOV,vertices')) == 0)               
                    
                    Nk = Nk + 1;                     
@@ -369,7 +387,6 @@ for h =1 :H
         % FOV blind region plot        
         [~,A_blind,b_blind] = is_in_blind([target1_xs(h) target1_ys(h)],[target2_xs(h) target2_ys(h)],FOV,[]);
         plotregion(-A_blind ,-b_blind ,[xl yl]',[xu yu]',[0,0,0]);
-
         
     for k = 1:length(vis_cost_set{h})                
         alpha = 1/vis_cost_set{h}{k};     % this might be inf    
