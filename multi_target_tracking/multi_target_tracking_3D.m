@@ -155,7 +155,6 @@ end % target
 
 %% Phase 0: plot the visibility score 
 
-
 color_set = [1 0 0;0 0 1]; % for 1st target - red / 2nd target - blue 
 
 for n = 1: N_target         
