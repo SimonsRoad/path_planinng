@@ -68,8 +68,8 @@ vis_cost_sets = {};
 
 %% Get score maps of each target during a prediction horizon
 d_ref = 2;
-N_azim = [10,11];
-N_elev = [6, 7];
+N_azim = [30,30];
+N_elev = [10, 10];
 
 for n = 1:N_target 
     target_xs = targets_xs(n,:);

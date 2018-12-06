@@ -125,13 +125,10 @@ plot(local_path2(:,1),local_path2(:,2),'b--')
 x1_path = []; % N x 2
 x2_path = []; % N x 2
 N_unknown = []; % number of unknown cells 
-[rs,cs] = meshgrid(size(occu_map.occupancyMatrix,1),size(occu_map.occupancyMatrix,2));
+[rs,cs] = meshgrid(1:size(occu_map.occupancyMatrix,1),1:size(occu_map.occupancyMatrix,2));
 
 rs = reshape(rs,[],1);
 cs = reshape(cs,[],1);
-
-
-
 
 n1_count=1; n1_exe_max=6; 
 n2_count=1; n2_exe_max=6;
@@ -237,4 +234,22 @@ for t=1:100
     
  
 end
+
+%%  Unpack the record 
+figure
+occu_map.show()
+
+hold on 
+% plot(x1_path(:,1),x1_path(:,2),'r-','LineWidth',3)
+% plot(x2_path(:,1),x2_path(:,2),'b-','LineWidth',3)
+
+% let's make up some data 
+x2_path_fake = x2_path;
+x2_path_fake(20:30,2) =4;
+
+plot(x1_path(:,1),x1_path(:,2),'r-','LineWidth',3)
+plot(x2_path_fake(:,1),x2_path_fake(:,2),'b-','LineWidth',3)
+
+
+%% 
 

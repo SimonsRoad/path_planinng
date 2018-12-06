@@ -41,7 +41,42 @@ function rects=rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res)
         c_lower = c_lmx;
         c_upper = c_lmx;
                 
-        % 1. rectangle row_expansion         
+              %% 2. rectangle  col_expansion                 
+           for c_exp = 1:c_max_stride
+            % expansion 
+            c_lower_prev = c_lower;
+            c_upper_prev  = c_upper;
+            
+            c_lower = max(c_lmx - stride_res * c_exp,1);
+            c_upper = min(c_lmx + stride_res *c_exp,size(DT,2));
+            
+            
+            % does it contain null region ?
+            boundary_edge_r = boundary_rc(:,1); boundary_edge_c = boundary_rc(:,2);
+            included_null=(r_lower <= boundary_edge_r) ...
+                & (boundary_edge_r <= r_upper) ...
+                & (boundary_edge_c <= c_upper) ...
+                & (boundary_edge_c >= c_lower);
+                        
+        x1 = r_lower;
+        y1 =c_lower;
+        x2 = r_upper;
+        y2 = c_upper;
+                
+
+            
+            if sum(included_null) 
+                c_lower = c_lower_prev;
+                c_upper = c_upper_prev;
+                break % break the loop 
+            end
+            
+         patch([x1 x1 x2 x2],[y1 y2 y2 y1],ones(1,3),'FaceAlpha',0.1,'EdgeColor','g')
+         
+            
+           end
+        
+        %% 1. rectangle row_expansion         
         for r_exp = 1:r_max_stride
             % box region 
             
@@ -82,42 +117,9 @@ function rects=rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res)
         end
         
         
-         % 2. rectangle  col_expansion                 
-           for c_exp = 1:c_max_stride
-            % expansion 
-            c_lower_prev = c_lower;
-            c_upper_prev  = c_upper;
-            
-            c_lower = max(c_lmx - stride_res * c_exp,1);
-            c_upper = min(c_lmx + stride_res *c_exp,size(DT,2));
-            
-            
-            % does it contain null region ?
-            boundary_edge_r = boundary_rc(:,1); boundary_edge_c = boundary_rc(:,2);
-            included_null=(r_lower <= boundary_edge_r) ...
-                & (boundary_edge_r <= r_upper) ...
-                & (boundary_edge_c <= c_upper) ...
-                & (boundary_edge_c >= c_lower);
-                        
-        x1 = r_lower;
-        y1 =c_lower;
-        x2 = r_upper;
-        y2 = c_upper;
-                
 
-            
-            if sum(included_null) 
-                c_lower = c_lower_prev;
-                c_upper = c_upper_prev;
-                break % break the loop 
-            end
-            
-         patch([x1 x1 x2 x2],[y1 y2 y2 y1],ones(1,3),'FaceAlpha',0.1,'EdgeColor','g')
-         
-            
-           end
                   
-           
+ %%           
            DT(r_lower:r_upper,c_lower:c_upper) = 0;      
 
            if r_lower < r_upper && c_lower<c_upper

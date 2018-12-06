@@ -45,16 +45,10 @@ pose1 = [x10 pi/2];
 
 rayinsertion(pose1,angle_min,angle_max,Nray,maxrange)
 
-% agent2
-x20=[4 1];
-% x20=[8 8];
-
-pose2 = [x20 pi/2];
 
 
 % ray insertion using real_map and occu_map
 
-rayinsertion(pose2,angle_min,angle_max,Nray,maxrange)
 
 obstacle_accumulation=[];
 [obstacle_i,obstacle_j]=find(occu_map.occupancyMatrix>0.7);
@@ -70,7 +64,7 @@ end
 occu_map.show()
 hold on
 plot(x10(1),x10(2),'ro')
-plot(x20(1),x20(2),'bo')
+% plot(x20(1),x20(2),'bo')
 
 x1=x10; x2=x20;
 %% Frontier
@@ -104,50 +98,50 @@ for n=1:N_cluster
     end
 end
 
-[c1,c2]=assign_cent(x1,x2,centroids,frontiers,IDX,fil_IDX);
+if t == 1
+    v1 = [0 0];
+else
+    v1 = x1_path(end,:) - x1_path(end-1,:);    
+end
+
+[c1]=assign_cent_single(x1,v1,centroids); % very stupid policy 
 
 % plot(frontiers(:,1),frontiers(:,2),'co','MarkerSize',1,'LineWidth',2)
 plot(centroids(:,1),centroids(:,2),'go','LineWidth',2)
 plot(c1(1),c1(2),'r*')
-plot(c2(1),c2(2),'b*')
 %% Local planner
 
 local_path1=local_planner(occu_map,x1,c1);
 plot(local_path1(:,1),local_path1(:,2),'r--')
 
-local_path2=local_planner(occu_map,x2,c2);
-plot(local_path2(:,1),local_path2(:,2),'b--')
 
 %% move 
 
 % let's save path 
 
 x1_path = []; % N x 2
-x2_path = []; % N x 2
 N_unknown = []; % number of unknown cells 
-[rs,cs] = meshgrid(size(occu_map.occupancyMatrix,1),size(occu_map.occupancyMatrix,2));
+[rs,cs] = meshgrid(1:size(occu_map.occupancyMatrix,1),1:size(occu_map.occupancyMatrix,2));
 
 rs = reshape(rs,[],1);
 cs = reshape(cs,[],1);
 
-isOcc = 
-
-
 n1_count=1; n1_exe_max=6; 
-n2_count=1; n2_exe_max=6;
 
-for t=1:100
+for t=1:200
     % move
     x1=local_path1(end-n1_count+1,:);
-    x2=local_path2(end-n2_count+1,:);
     
-    x1_path = [x1_path ; x1]';
-    x2_path = [x2_path ; x2];
+    x1_path = [x1_path ; x1];
     
+    
+    % number of unknown cells
+    isOcc = occu_map.checkOccupancy([rs cs],"grid");
+    N_unknown = [N_unknown   sum(isOcc == -1)];
+
     
     
     rayinsertion([x1 0],angle_min,angle_max,Nray,maxrange)
-    rayinsertion([x2 0],angle_min,angle_max,Nray,maxrange)
     
     [obstacle_i,obstacle_j]=find(occu_map.occupancyMatrix>0.7);
 
@@ -185,13 +179,18 @@ for t=1:100
     end
 
     if ~isempty(fil_IDX)
-        [c1,c2]=assign_cent(x1,x2,centroids,frontiers,IDX,fil_IDX);
-         plot(centroids(:,1),centroids(:,2),'go','LineWidth',2)
+        if t ==1 
+             v1 = [0 0];
+        else
+            v1 = x1_path(end,:) - x1_path(end-1,:);    
+        end
+        
+         [c1]=assign_cent_single(x1,v1,centroids); % very stupid policy 
+
 
     end
            
     plot(c1(1),c1(2),'r*')
-    plot(c2(1),c2(2),'b*')
     
     if n1_count==min(n1_exe_max,length(local_path1)-1)
        fprintf('agent1 reached way point. new local planner will be given\n')
@@ -203,28 +202,17 @@ for t=1:100
     end
     
     
-    if n2_count==min(n2_exe_max,length(local_path2)-1)
-       fprintf('agent2 reached way point. new local planner will be given\n')
-       local_path2=local_planner(occu_map,x2,c2);
-       n2_count=1;
-       
-    else
-        n2_count=n2_count+1;
-        
-    end
+
     
-    fprintf('agent1 : %d agent2 : %d \n',n1_count,n2_count);
 
    
     plot(x1(1),x1(2),'ro')
-    plot(x2(1),x2(2),'bo')
 
    
 %     plot(frontiers(:,1),frontiers(:,2),'co','MarkerSize',1,'LineWidth',2)
 
     
     plot(local_path1(:,1),local_path1(:,2),'r--')
-    plot(local_path2(:,1),local_path2(:,2),'b--')
 
    
     pause(1e-1)
@@ -232,4 +220,22 @@ for t=1:100
     
  
 end
+
+%%  Unpack the record 
+figure
+occu_map.show()
+
+hold on 
+% plot(x1_path(:,1),x1_path(:,2),'r-','LineWidth',3)
+% plot(x2_path(:,1),x2_path(:,2),'b-','LineWidth',3)
+
+% let's make up some data 
+x2_path_fake = x2_path;
+x2_path_fake(20:30,2) =4;
+
+plot(x1_path(:,1),x1_path(:,2),'r-','LineWidth',3)
+plot(x2_path_fake(:,1),x2_path_fake(:,2),'b-','LineWidth',3)
+
+
+%% 
 

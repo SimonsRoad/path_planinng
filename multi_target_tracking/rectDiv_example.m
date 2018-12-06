@@ -1,5 +1,6 @@
-%% draw SDT 
-load('DT_example.mat')
+%% draw original SDT 
+% load('DT_example.mat')
+DT(DT<0) =0;
 c_set = size(DT,2);
 r_set = size(DT,1);
 max_DT = max(max(DT));
@@ -25,14 +26,24 @@ for r = 1:r_set
 end
 
 
+null_matrix = DT <= 1;
+
+% boundary detection
+[boundary_idx]=bwboundaries(null_matrix);
+boundary_rc = [];    
+for idx=1:length(boundary_idx)
+    boundary_rc = [boundary_rc; boundary_idx{idx}];
+end
+
+
 for i = 1:length(boundary_rc)
     plot(boundary_rc(i,1),boundary_rc(i,2),'rs','MarkerSize',4);    
 end
 
 
-%% 
+%% subdivision 
 
-N_rect = 5;
+N_rect = 6;
 r_max_stride = 5;
 c_max_stride = 5;
 stride_res = 1;
@@ -41,8 +52,6 @@ rects=rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res);
 
 r_set =size(DT,1);
 c_set= size(DT,2);
-
-
 
 
 %% division box 
