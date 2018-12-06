@@ -272,32 +272,35 @@ for n = 1: N_target
 end
     
 hold off 
-%% Phase 4 : plot feasible search region (should include all the points on the target paths )
+%% Phase 4 : feasible search region (should include all the points on the target paths )
 
 % for now, the feasible region (search space) for solving discrete path is just rectangle
 
 H = length(target_xs);
+x_range = 12;
+y_range = 10;
+z_range = 8;
 
 % height of initial pose of tracker 
 margin = 3; 
 
-tracker = [tracker(1) ; tracker(2) ; 2]; 
+tracker = [tracker(1) ; tracke r(2) ; 2]; 
 
-% domain 
-domain_x =[min([tracker(1) reshape(targets_xs,1,[])]) max([tracker(1) reshape(targets_xs,1,[])])];
-domain_y =[min([tracker(2) reshape(targets_ys,1,[])]) max([tracker(2) reshape(targets_ys,1,[])])];
-domain_z =[min([tracker(3) reshape(targets_zs,1,[])]) max([tracker(3) reshape(targets_zs,1,[])])];
+feasible_domain_x = [tracker(1) - x_range/2 tracker(1) + x_range/2];
+xl = feasible_domain_x(1);
+xu = feasible_domain_x(2);
 
-xl = domain_x(1) - margin;
-xu = domain_x(2) + margin;
+feasible_domain_y = [tracker(2) - y_range/2  tracker(2)  + y_range/2];
+yl = feasible_domain_y(1);
+yu = feasible_domain_y(2);
 
-yl = domain_y(1) - margin;
-yu = domain_y(2) +margin;
+feasible_domain_z = [tracker(3) - z_range/2  tracker(3)  + z_range/2];
+zl = feasible_domain_z(1);
+zu = feasible_domain_z(2);
 
-zl = domain_z(1) - margin;
-zu = domain_z(2) + margin;
-
-
+search_spec.x_dom = [xl,xu];
+search_spec.y_dom = [yl yu];
+search_spec.z_dom = [zl zu];
 
 % plot the serach region 
 figure
@@ -312,8 +315,8 @@ plot3(tracker(1),tracker(2),tracker(3),'mo','MarkerFaceColor','m')
 draw_box([xl yl zl],[xu yu zu],'k',0.1)
 
 
-%% Phase 5 : Combination for divided regions 
-
+%% Phase3 : Combination for divided regions of each agent - indexing
+%%
 % intersection region of the two polyhydra corresponding to each target
 FOV = 160 * pi/180;
 A_div = {};
@@ -330,20 +333,18 @@ for h = 1:H
     c_div{h} = {};
     v_div{h} = {};
     Nk = 0;
-    
-    for i = 1:length(visi_info_set{1}.cost_set{h})
-        for j = 1:length(visi_info_set{2}.cost_set{h})
-            
+    for i = 1:visi_info_set{1}.Nh(h)
+        for j = 1:visi_info_set{2}.Nh(h)
             % feasibility test for the intersection region of the two
-            % polyhedron
-                        
-            Ai = visi_info_set{1}.A_set{h}{i};
-            bi = visi_info_set{1}.b_set{h}{i};
-            vis_cost1 = visi_info_set{1}.cost_set{h}(i);
+            % pizza
             
-            Aj = visi_info_set{2}.A_set{h}{j};
-            bj = visi_info_set{2}.b_set{h}{j};
-            vis_cost2 = visi_info_set{2}.cost_set{h}(j);
+            Ai = visi_info_set{1}.Ah{h}{i};
+            bi = visi_info_set{1}.bh{h}{i};
+            vis_cost1 = visi_info_set{1}.Sh{h}{i};
+            
+            Aj = visi_info_set{2}.Ah{h}{j};
+            bj = visi_info_set{2}.bh{h}{j};
+            vis_cost2 = visi_info_set{2}.Sh{h}{j};
                               
             A_intsec = [Ai ; Aj];
             b_intsec = [bi ; bj];
@@ -362,28 +363,26 @@ for h = 1:H
             if (flag ~= -2) % feasibility test pass
                % let's keep this region for now 
                % let's investigate the FOV constraint 
-%                  vertices = con2vert([A_bound;A_intsec ],[;b_bound ;b_intsec]); % the vertices of this region   
+% %               vertices = con2vert([A_bound;A_intsec ],[;b_bound ;b_intsec]); % the vertices of this region   
                
                 
                 % In case of 3D, the intersection region of two polyhydron
                 % can be 2D, which can paralyze the code 
-                vertices = con2vert([A_bound;A_intsec ],[b_bound ;b_intsec]); % the vertices of this region   
                 
-% 
-%                try  
-%                     vertices = lcon2vert([A_bound;A_intsec ],[;b_bound ;b_intsec]); % the vertices of this region   
-%                catch
-%                     vertices = [];
-%                end
-%                
-%                
+               try  
+                    vertices = lcon2vert([A_bound;A_intsec ],[;b_bound ;b_intsec]); % the vertices of this region   
+               catch
+                    vertices = [];
+               end
+               
+               
                if ~isempty(vertices)
                
                vertices = vertices + 0.1 * (mean(vertices) - vertices);
                
                % we reject the segment if any of them is included in the blind region    
                height = 1;
-%                if (sum(is_in_blind3([targets_xs(1,h) targets_ys(1,h) height],[targets_xs(2,h) targets_ys(2,h) height],FOV,vertices',0)) == 0)               
+               if (sum(is_in_blind3([targets_xs(1,h) targets_ys(1,h) height],[targets_xs(2,h) targets_ys(2,h) height],FOV,vertices',0)) == 0)               
                    
                    Nk = Nk + 1;                     
                    A_div{h}{Nk} = A_intsec;
@@ -392,7 +391,7 @@ for h = 1:H
                    c_div{h}{Nk} = mean(vertices); % center of each segment                
                    
                    vis_cost_set{h}{Nk} =  vis_cost1 + ratio * vis_cost2; % let's assign the visibility cost to here    
-%                end
+               end
                end
             end % feasibility test pass
                         

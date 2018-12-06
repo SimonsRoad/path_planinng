@@ -155,8 +155,8 @@ if ~all(A*c < b);
 end
 b = b - A*c;
 D = A ./ repmat(b,[1 size(A,2)]);
-[k,v2] = convhulln([D;zeros(1,size(D,2))],{'Qj','Pp'});
-[k,v1] = convhulln(D,{'Qj','Pp'});
+[k,v2] = convhulln([D;zeros(1,size(D,2))]);
+[k,v1] = convhulln(D);
 if v2 > v1
     error('Non-bounding constraints detected. (Consider box constraints on variables.)')
 end

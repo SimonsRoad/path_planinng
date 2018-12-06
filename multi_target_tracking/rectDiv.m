@@ -71,7 +71,7 @@ function rects=rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res)
                 break % break the loop 
             end
             
-         patch([x1 x1 x2 x2],[y1 y2 y2 y1],ones(1,3),'FaceAlpha',0.1,'EdgeColor','g')
+%          patch([x1 x1 x2 x2],[y1 y2 y2 y1],ones(1,3),'FaceAlpha',0.1,'EdgeColor','g')
          
             
            end
@@ -95,7 +95,7 @@ function rects=rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res)
                 
             
             % plot 
-            plot(r_lmx,c_lmx,'g*','MarkerSize',8,'MarkerFaceColor','g')
+%             plot(r_lmx,c_lmx,'g*','MarkerSize',8,'MarkerFaceColor','g')
             
                         
             % does it contain null region ?
@@ -111,7 +111,7 @@ function rects=rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res)
                 break % break the loop 
             end
             
-          patch([x1 x1 x2 x2],[y1 y2 y2 y1],ones(1,3),'FaceAlpha',0.1,'EdgeColor','g')
+%           patch([x1 x1 x2 x2],[y1 y2 y2 y1],ones(1,3),'FaceAlpha',0.1,'EdgeColor','g')
 
               
         end
@@ -120,15 +120,16 @@ function rects=rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res)
 
                   
  %%           
-           DT(r_lower:r_upper,c_lower:c_upper) = 0;      
+           sub_blk = DT(r_lower:r_upper,c_lower:c_upper) ;                   
+            score = mean(mean(sub_blk)); 
+         DT(r_lower:r_upper,c_lower:c_upper) = 0;      
 
+            
            if r_lower < r_upper && c_lower<c_upper
-            sub_blk = DT(r_lower:r_upper,c_lower:c_upper) ;                   
             rect.lower = [r_lower c_lower];
             rect.upper = [r_upper c_upper];
-            rect.score = mean(mean(sub_blk));
-            
-            
+            rect.score = score;
+                      
 
             x1 = r_lower;
             y1 =c_lower;
@@ -136,10 +137,8 @@ function rects=rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res)
             y2 = c_upper;
                 
             
-            patch([x1 x1 x2 x2],[y1 y2 y2 y1],ones(1,3),'FaceAlpha',0.1,'EdgeColor','b','LineWidth',3)
+%             patch([x1 x1 x2 x2],[y1 y2 y2 y1],ones(1,3),'FaceAlpha',0.1,'EdgeColor','b','LineWidth',3)
          
-  
-            
 
 
             % boundary detection

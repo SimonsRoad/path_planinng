@@ -1,10 +1,16 @@
-function draw_sphere_sector(xc,r,azim_min,azim_max,elev_min,elev_max,color,alpha)
+function draw_sphere_sector(xc,r,rect,color,alpha)
      % this function draw a circle sector 
      % xc : center of sphere
      % azim_max,azim_min,elev_min,elev_max : range of angle 
      % r : radius 
      % color : vector 
      % alpha : double
+     % rect : rectangle in azim and elev 
+
+    azim_min = rect.lower(1);
+    azim_max = rect.upper(1);
+    elev_min  = rect.lower(2);
+    elev_max = rect.upper(2);
      
      N = 10 ;
     
@@ -42,6 +48,5 @@ function draw_sphere_sector(xc,r,azim_min,azim_max,elev_min,elev_max,color,alpha
         plot3([pnt1(1) pnt2(1)],[pnt1(2) pnt2(2)],[pnt1(3) pnt2(3)],'k');
     end
     
-    hold off 
 
 end
