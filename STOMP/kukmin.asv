@@ -130,7 +130,7 @@ N_unknown = []; % number of unknown cells
 rs = reshape(rs,[],1);
 cs = reshape(cs,[],1);
 
-
+isOcc = 
 
 
 n1_count=1; n1_exe_max=6; 
@@ -141,14 +141,9 @@ for t=1:100
     x1=local_path1(end-n1_count+1,:);
     x2=local_path2(end-n2_count+1,:);
     
-    x1_path = [x1_path ; x1];
+    x1_path = [x1_path ; x1]';
     x2_path = [x2_path ; x2];
     
-    
-    % number of unknown cells
-    isOcc = occu_map.checkOccupancy([rs cs],"grid");
-    N_unknown = [N_unknown   sum(isOcc == -1)];
-
     
     
     rayinsertion([x1 0],angle_min,angle_max,Nray,maxrange)
