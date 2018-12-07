@@ -3,6 +3,7 @@
 
 addpath('..\ASAP1','.\','..\plotregion\');
 addpath('..\STOMP\')
+addpath('..\intercept\') % for Rplot and proj_image
 
 %% Phase1 : Map setting in 2D projection space
 
@@ -256,6 +257,7 @@ figure
 color_set = [1 0 0;0 0 1]; % for 1st target - red / 2nd target - blue 
 
 show(map3)
+H = length(target1_xs);
 target1_zs = ones(1,H);
 target2_zs = ones(1,H);
 
@@ -263,7 +265,7 @@ hold on
 plot3(target1_xs,target1_ys,target1_zs,'r^-','LineWidth',2)
 plot3(target2_xs,target2_ys,target2_zs,'r^-','LineWidth',2)
 % plot3(tracker(1),tracker(2),tracker(3),'mo','MarkerFaceColor','m')
-draw_box([xl yl zl],[xu yu zu],'k',0.1)
+% draw_box([xl yl zl],[xu yu zu],'k',0.1)
 
 hold on 
 for n = 1: N_target         
@@ -501,28 +503,30 @@ for h = 1:H
                
                if ~isempty(vertices)
                
-               vertices = vertices + 0.1 * (mean(vertices) - vertices);
-               
-               % we reject the segment if any of them is included in the blind region    
-               height = 1;
-%                if (sum(is_in_blind3([targets_xs(1,h) targets_ys(1,h) height],[targets_xs(2,h) targets_ys(2,h) height],FOV,vertices',0)) == 0)               
                    
-                   Nk = Nk + 1;                     
+               vertices = vertices + 0.1 * (mean(vertices) - vertices);
+                              
+               % we reject the segment the volume is too small                    
+               shp = alphaShape(vertices(:,1),vertices(:,2),vertices(:,3),20);
+               vol = shp.volume;
+               if vol >= 5
+                  Nk = Nk + 1;                     
                    A_div{h}{Nk} = A_intsec;
                    b_div{h}{Nk} = b_intsec; 
                    v_div{h}{Nk} =  vertices;
                    c_div{h}{Nk} = mean(vertices); % center of each segment                
                    
                    vis_cost_set{h}(Nk) =  vis_cost1 + ratio * vis_cost2; % let's assign the visibility cost to here    
-%                end
+               end 
+               
                end
             end % feasibility test pass
                         
         end        
     end
 end
-%% Plot faesible segment
-%%
+%% Phase 6: plot faesible segment
+
 figure(1)
 for h =1 :H 
     subplot(2,H/2,h)                
@@ -556,7 +560,7 @@ for h =1 :H
         axis equal
         
 end
-%% Astar for the path of region segmentsd
+%% Phase 7: Astar for the path of region segmentsd
 
 node_name_array = {}; %string -> this will be used in matalb graph library 
 node_idx_array={}; % segment index (what time? and what (A,b)?)
@@ -565,9 +569,9 @@ name_vec = {'t0n1'};
 loc_vec = tracker;
 node_name_array{1} = name_vec; % initialize the node name array
 
-w_v = 10; % visibility weight for optimization 
+w_v = 50; % visibility weight for optimization 
 w_d = 1; % weight for desired distance 
-d_max = 4; % allowable connecting distane btw "center of region"
+d_max = 10; % allowable connecting distane btw "center of region"
 Astar_G = digraph();
 
 % for update egde only once at the final phase 
@@ -578,7 +582,11 @@ edge_cnt = 0;
 
 for h = 1:H
         % phase1 : add node at this future step
-        node_name_array{h+1} = strseq(strcat('t',num2str(h),'n'),1:length(vis_cost_set{h}));    
+        node_name_array{h+1} = {};
+
+        for name_idx  = 1:length(vis_cost_set{h})
+            node_name_array{h+1}{name_idx}  = strcat('t',num2str(h),'n',num2str(name_idx));
+        end
         
         Astar_G=Astar_G.addnode(node_name_array{h+1});    
         cur_target_pos = [target_xs(h) ; target_ys(h)];     % target position at this time step 
@@ -596,9 +604,10 @@ for h = 1:H
                 travel_distance = norm([prev_observ_pnt(1) - cur_observ_pnt(1),prev_observ_pnt(2) - cur_observ_pnt(2)]);
                 if (travel_distance < d_max) % for sparsity 
                     edge_cnt = edge_cnt + 1;
-                    vis_cost = vis_cost_set{h}{idx2};                
+                    vis_cost = vis_cost_set{h}(idx2);                
                     deviation_d_ref = (d_ref - norm([cur_observ_pnt(1)-cur_target_pos(1),cur_observ_pnt(2)-cur_target_pos(2)]))^2;       
-                    weight = w_v*vis_cost + w_d*deviation_d_ref + travel_distance;
+                    weight = w_v*(vis_cost)^2 + w_d*deviation_d_ref + travel_distance;
+                    fprintf("weight record : %f / %f / %f\n",w_v*vis_cost^2,w_d*deviation_d_ref ,travel_distance)
                     % add the two connecting nodes with the weight 
                     node1_list{edge_cnt} = node_name_array{h}{idx1};
                     node2_list{edge_cnt} = node_name_array{h+1}{idx2};                    
@@ -618,8 +627,8 @@ end
  
 Astar_G=Astar_G.addedge(node1_list,node2_list, (weight_list));
 [path_idx,total_cost]=Astar_G.shortestpath('t0n1','xf','Method','auto');
-%% plotting the planned path
-%%
+%% Phase 8 : plotting the planned path
+
 figure(1)
 hold on 
 idx_seq = [];
@@ -634,21 +643,18 @@ conv_hull = {};
 waypoint_polygon_seq = {};
 corridor_polygon_seq = {};
 
-
 for h = 1:H    
     subplot(2,2,h)
-    plotregion(-A_div{h}{idx_seq(h)} ,-b_div{h}{idx_seq(h)} ,[xl yl]',[xu yu]',[1,0,1],0.5);
+    plotregion(-A_div{h}{idx_seq(h)} ,-b_div{h}{idx_seq(h)} ,[xl yl zl]',[xu yu zu]',[1,0,1],1);
     
     % 2D version 
 %     waypoint_polygon_seq{h}.A = A_div{h}{idx_seq(h)};
 %     waypoint_polygon_seq{h}.b = b_div{h}{idx_seq(h)};
     
     % 3D version 
-    waypoint_polygon_seq{h}.A = [A_div{h}{idx_seq(h)} zeros(size(A_div{h}{idx_seq(h)},1),1)];
+    waypoint_polygon_seq{h}.A = [A_div{h}{idx_seq(h)}];
     waypoint_polygon_seq{h}.b =[b_div{h}{idx_seq(h)}];
-    
-       
-    
+               
     if h ==1 
         vert1 = tracker';
     else
@@ -656,8 +662,9 @@ for h = 1:H
     end    
     vert2 = v_div{h}{idx_seq(h)};         
     vert = [vert1 ; vert2];       
-    K = convhull(vert(:,1), vert(:,2));              
-    patch(vert(K,1), vert(K,2),[0 0 0],'EdgeColor','g','LineWidth',4,'FaceAlpha',0.1);     
+    K = convhull(vert(:,1), vert(:,2),vert(:,3));    
+    shp = alphaShape(vert(:,1),vert(:,2),vert(:,3),1);
+    plot(shp,'EdgeColor','g','FaceColor',[0 0 0],'FaceAlpha',0)
     
     [A_corr,b_corr]=vert2con(vert(K,:));
     % corridor connecting each waypoint polygon 
@@ -665,22 +672,22 @@ for h = 1:H
 %     corridor_polygon_seq{h}.A =[A_corr] ;
 %     corridor_polygon_seq{h}.b = [b_corr]; 
     
-    corridor_polygon_seq{h}.A =[A_corr zeros(size(A_corr,1),1)] ;
+    corridor_polygon_seq{h}.A =[A_corr ] ;
     corridor_polygon_seq{h}.b = b_corr;        
-    axis([0 10 0 10])
+    axis([xl xu yl yu zl zu])
 end
 
 % save('polygon_seq','waypoint_polygon_seq','corridor_polygon_seq');
-%% Generation of smooth path (currently, the convex hull is assumed to be collision free, additional modification required)
-%%
+%% Phase 9: generation of smooth path (currently, the convex hull is assumed to be collision free, additional modification required)
+
 ts= [0 1 2 3 4];
 
-X0 = [tracker;0];
+X0 = [tracker];
 Xdot0 = zeros(3,1);
 Xddot0 = zeros(3,1);
 
 
-% smooth path generation in the corrideor 
+% smooth path generation in the corrideor  (TODO)
 [pxs,pys,pzs]=min_jerk_ineq(ts,X0,Xdot0,Xddot0,waypoint_polygon_seq,corridor_polygon_seq);
 
 % draw path 
@@ -688,6 +695,18 @@ figure(1)
 for h = 1:H
     subplot(2,2,h)
     hold on
-    plot_poly_spline(ts,reshape(pxs,[],1),reshape(pys,[],1),reshape(pzs,[],1))
+    [xps, yps, zps]=plot_poly_spline(ts,reshape(pxs,[],1),reshape(pys,[],1),reshape(pzs,[],1));    
     axis equal
 end
+
+
+%% Phase 10: camera included 
+
+
+
+
+
+
+
+
+

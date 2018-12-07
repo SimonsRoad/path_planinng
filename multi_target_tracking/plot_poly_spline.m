@@ -2,7 +2,7 @@
 
 function [knot_x,knot_y,knot_z]=plot_poly_spline(Ts,pxs,pys,pzs)
     
-knot_x = [];
+    knot_x = [];
     knot_y = [];
     knot_z = [];
     
@@ -12,7 +12,7 @@ knot_x = [];
     xs=[]; ys=[]; zs=[];
     ts=[];
     % per segement 
-    for n=1:n_seg
+    for n=1:n_seg 
         t1=Ts(n); 
         t2=Ts(n+1);
                 
@@ -35,14 +35,19 @@ knot_x = [];
         end
        
     end
+    
+                knot_x = [knot_x polyval(flipud(px),t_eval)];
+                knot_y = [knot_y polyval(flipud(py),t_eval)];
+                knot_z = [knot_z polyval(flipud(pz),t_eval)];             
+    
 
 %     figure()
     % 3d path plot
 %     subplot(3,2,[1,3,5])
 %     plot3(Xs,Ys,Zs,'rs');
     hold on 
-    plot3(xs,ys,zs,'b-','LineWidth',4);
-    plot3(knot_x,knot_y,knot_z,'mo','MarkerSize',4);
+    plot3(xs(1:end-1),ys(1:end-1),zs(1:end-1),'g-','LineWidth',4);
+    plot3(knot_x,knot_y,knot_z,'mo','MarkerSize',8,'MarkerFaceColor','m');
     
 %     subplot(3,2,2)
 %     plot(ts,xs)
