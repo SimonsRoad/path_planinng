@@ -69,11 +69,11 @@ vis_cost_sets = {};
 
 % parameter for observation 
 d_ref = 2;
-N_azim = [30,30];
+N_azim = [40,40];
 N_elev = [10, 10];
 
 % parameter for sub-division             
-N_rect = 6; r_max_stride = 5; c_max_stride = 5; stride_res = 1;                
+N_rect = 10; r_max_stride = 6; c_max_stride = 6; stride_res = 1;                
 
 % visi info 
 visi_info_set = {}; % idx = 1 : target1 / idx =2 : target2
@@ -88,6 +88,7 @@ for n = 1:N_target
     A_set_t = {}; % set of affine region at the time t
     b_set_t = {};
     rect_set_t ={}; % four corner of of each rect 
+    DT_t = {}; % distance field of each agent at time t 
     
     for t = 1:length(target_xs) % -1 is due to some mistake in set_target_tracker function 
          Nt = 0; % number of sub-division rect 
@@ -136,7 +137,7 @@ for n = 1:N_target
         azim_set = linspace(0,2*pi,N_azim(n)+1);
         azim_set = azim_set(1:end-1);
         
-        elev_max = pi/3; elev_min=pi/8;
+        elev_max = 4*pi/9; elev_min=pi/18;
         elev_set = linspace(elev_min,elev_max,N_elev(n));
                 
         for azim_idx =1: N_azim(n)
@@ -149,6 +150,8 @@ for n = 1:N_target
         DT = DT(N_azim(n)+1:2*N_azim(n),:);        
                                
         if sum(DT==inf) % in this case, no occlusion occurs, let's just find rect with a predefined number 
+            
+            DT_t{t} = ones(N_azim(n),N_elev(n));
             
             % this can be adjusted arbitrary 
             N_row = 3; % devide N_row  along row-axis 
@@ -191,6 +194,8 @@ for n = 1:N_target
                                                          
         else % some ray hits
             
+            DT_t{t} = DT;
+
             
             % extract some subbox region on the (azim,elev) map 
             rects = rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res);
@@ -198,10 +203,12 @@ for n = 1:N_target
             for rect_idx = 1:length(rects)
                 
                 
-                azim1 = rects{rect_idx}.lower(1);
-                elev1 = rects{rect_idx}.lower(2);
-                azim2 = rects{rect_idx}.upper(1);
-                elev2 = rects{rect_idx}.upper(2);
+                azim1 = azim_set(rects{rect_idx}.lower(1));
+                elev1 = elev_set(rects{rect_idx}.lower(2));
+                azim2 = azim_set(rects{rect_idx}.upper(1));
+                elev2 = elev_set(rects{rect_idx}.upper(2));
+                
+                               
 
                 % enclosing region of this polyhedra segment 
                 
@@ -231,6 +238,8 @@ for n = 1:N_target
      visi_info.b_set = b_set_t;
      visi_info.cost_set = cost_set_t;
      visi_info.rect_set = rect_set_t;
+     visi_info.DT_t = DT_t;
+     
      % append it 
      visi_info_set{n} = visi_info;
          
@@ -240,7 +249,21 @@ end % target
 
 %% Phase 3: plot the visibility region of each target 
 
+
+
+% sphere version 
+figure
 color_set = [1 0 0;0 0 1]; % for 1st target - red / 2nd target - blue 
+
+show(map3)
+target1_zs = ones(1,H);
+target2_zs = ones(1,H);
+
+hold on 
+plot3(target1_xs,target1_ys,target1_zs,'r^-','LineWidth',2)
+plot3(target2_xs,target2_ys,target2_zs,'r^-','LineWidth',2)
+% plot3(tracker(1),tracker(2),tracker(3),'mo','MarkerFaceColor','m')
+draw_box([xl yl zl],[xu yu zu],'k',0.1)
 
 hold on 
 for n = 1: N_target         
@@ -270,8 +293,81 @@ for n = 1: N_target
         end
                 
 end
-    
+
+figure
+title("distance field sequence")
+for n = 1:N_target
+    for h = 1:H
+        
+        subplottight(N_target , H , h + H*(n-1));
+        % draw the distance field at time t 
+        DT = visi_info_set{n}.DT_t{h};
+        DT(DT<0) =0;
+        c_set = size(DT,2);
+        r_set = size(DT,1);
+        max_DT = max(max(DT));
+
+        [ys,xs] = meshgrid(1:c_set,1:r_set);
+        
+        hold on 
+        xlabel('row')
+        ylabel('col')
+
+        for r = 1:r_set
+            for c = 1: c_set
+
+                x1 = xs(r,c)-0.5;
+                y1 = ys(r,c)-0.5;
+                x2 = xs(r,c) + 0.5;
+                y2 = ys(r,c) + 0.5;
+
+                intensity = DT(r,c) / max_DT;        
+                patch([x1 x1 x2 x2],[y1 y2 y2 y1],intensity*ones(1,3))
+            end
+        end
+        
+        null_matrix = DT <= 1;
+
+        % boundary detection
+        [boundary_idx]=bwboundaries(null_matrix);
+        boundary_rc = [];    
+        for idx=1:length(boundary_idx)
+            boundary_rc = [boundary_rc; boundary_idx{idx}];
+        end
+
+
+        for i = 1:length(boundary_rc)
+            plot(boundary_rc(i,1),boundary_rc(i,2),'rs','MarkerSize',4);    
+        end
+        
+        
+        rects=rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res);
+
+        
+        % draw rect 
+        
+        hold on 
+        
+        for i = 1:length(rects)
+
+
+                x1 = rects{i}.lower(1);
+                y1 = rects{i}.lower(2);
+                x2 = rects{i}.upper(1);
+                y2 = rects{i}.upper(2);
+
+                patch([x1 x1 x2 x2],[y1 y2 y2 y1],ones(1,3),'FaceAlpha',0.1,'EdgeColor','g','LineWidth',3)
+
+        end
+
+                axis ([0 r_set 0 c_set])
+                axis equal
+
+    end
+end
+
 hold off 
+
 %% Phase 4 : plot feasible search region (should include all the points on the target paths )
 
 % for now, the feasible region (search space) for solving discrete path is just rectangle
@@ -312,6 +408,26 @@ plot3(tracker(1),tracker(2),tracker(3),'mo','MarkerFaceColor','m')
 draw_box([xl yl zl],[xu yu zu],'k',0.1)
 
 
+
+% affine version 
+color_set = [1 0 0;0 0 1]; % for 1st target - red / 2nd target - blue 
+
+for n = 1: N_target         
+        for h = 1:length(target1_xs)                                            
+            max_alpha = max(1./visi_info_set{n}.cost_set{h});
+            for i = 1: length(visi_info_set{n}.rect_set{h})
+                 alpha_val =1/visi_info_set{n}.cost_set{h}(i);          
+                
+                plotregion(-visi_info_set{n}.A_set{h}{i},-visi_info_set{n}.b_set{h}{i},[xl yl zl],[xu yu zu],color_set(n,:),(alpha_val/max_alpha)^2*0.3);              
+                                
+            end
+        end
+                
+end
+
+
+
+
 %% Phase 5 : Combination for divided regions 
 
 % intersection region of the two polyhydra corresponding to each target
@@ -330,6 +446,12 @@ for h = 1:H
     c_div{h} = {};
     v_div{h} = {};
     Nk = 0;
+    
+    % we reject the blind region 
+    rel_dist = norm([target1_xs(h) target1_ys(h)] - [target2_xs(h) target2_ys(h)]); % distance between the target 
+    blind_height = rel_dist/2/tan(FOV/2);
+    
+    
     
     for i = 1:length(visi_info_set{1}.cost_set{h})
         for j = 1:length(visi_info_set{2}.cost_set{h})
@@ -354,7 +476,7 @@ for h = 1:H
             
                         
             A_bound = [1 0 0; -1 0 0; 0 1 0; 0 -1 0;0 0 1; 0 0 -1];
-            b_bound = [xu ; -xl ; yu ; -yl ; zu ; -zl];
+            b_bound = [xu ; -xl ; yu ; -yl ; zu ; -(max(target1_zs(h),target2_zs(h))+blind_height)];
             
             [~,~,flag]=linprog([],[Ai ; Aj ],[bi ; bj] ,[],[],[xl yl zl],[xu yu zu]);
             
@@ -367,16 +489,16 @@ for h = 1:H
                 
                 % In case of 3D, the intersection region of two polyhydron
                 % can be 2D, which can paralyze the code 
-                vertices = con2vert([A_bound;A_intsec ],[b_bound ;b_intsec]); % the vertices of this region   
+%                 vertices = con2vert([A_bound;A_intsec ],[b_bound ;b_intsec]); % the vertices of this region   
                 
-% 
-%                try  
-%                     vertices = lcon2vert([A_bound;A_intsec ],[;b_bound ;b_intsec]); % the vertices of this region   
-%                catch
-%                     vertices = [];
-%                end
-%                
-%                
+
+               try  
+                    vertices = con2vert([A_bound;A_intsec ],[;b_bound ;b_intsec]); % the vertices of this region   
+               catch
+                    vertices = [];
+               end
+               
+               
                if ~isempty(vertices)
                
                vertices = vertices + 0.1 * (mean(vertices) - vertices);
@@ -391,7 +513,7 @@ for h = 1:H
                    v_div{h}{Nk} =  vertices;
                    c_div{h}{Nk} = mean(vertices); % center of each segment                
                    
-                   vis_cost_set{h}{Nk} =  vis_cost1 + ratio * vis_cost2; % let's assign the visibility cost to here    
+                   vis_cost_set{h}(Nk) =  vis_cost1 + ratio * vis_cost2; % let's assign the visibility cost to here    
 %                end
                end
             end % feasibility test pass
@@ -404,7 +526,8 @@ end
 figure(1)
 for h =1 :H 
     subplot(2,H/2,h)                
-        show(map)
+        
+        show(map3)
         hold on 
         plot(target1_xs,target1_ys,'r^-','LineWidth',2)
        
@@ -418,19 +541,23 @@ for h =1 :H
         draw_box([xl yl zl],[xu yu zu],'k',0.1)
         
         % FOV blind region plot        
-        is_in_blind3([target1_xs(h) target1_ys(h) height],[target2_xs(h) target2_ys(h) height],FOV,[],1);
+%         is_in_blind3([target1_xs(h) target1_ys(h) height],[target2_xs(h) target2_ys(h) height],FOV,[],1);
         
         for k = 1:length(vis_cost_set{h})                
-            alpha = 1/vis_cost_set{h}{k};    
-            [r,g,b]  = getRGB(vis_cost_set{h}{k},10,1);
-            plotregion(-A_div{h}{k} ,-b_div{h}{k} ,[xl yl]',[xu yu]',[r,g,b],alpha);
-            plot(c_div{h}{k}(1),c_div{h}{k}(2),'ks','MarkerSize',1.5,'MarkerFaceColor','k');
+            alpha = 1/vis_cost_set{h}(k);   
+            alpha_max = max(1./vis_cost_set{h});
+            alpha_min = min(1./vis_cost_set{h});
+            [r,g,b]  = getRGB(alpha,alpha_min,alpha_max,1);
+            plotregion(-A_div{h}{k} ,-b_div{h}{k} ,[xl yl zl]',[xu yu zu]',[r,g,b],0.5);
+            plot(c_div{h}{k}(1),c_div{h}{k}(2),'ks','MarkerSize',1.5,'MarkerFaceColor','k');            
         end
         
-    axis([0 10 0 10])
+        axis([xl xu yl yu zl zu])
+        axis equal
+        
 end
 %% Astar for the path of region segmentsd
-%%
+
 node_name_array = {}; %string -> this will be used in matalb graph library 
 node_idx_array={}; % segment index (what time? and what (A,b)?)
 

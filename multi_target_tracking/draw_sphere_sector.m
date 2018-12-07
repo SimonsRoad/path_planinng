@@ -41,12 +41,12 @@ function draw_sphere_sector(xc,r,rect,color,alpha)
     shp = alphaShape(xs,ys,zs,20);
     plot(shp,'FaceAlpha',alpha,'EdgeColor','none','FaceColor',color)
     hold on 
-    % plot the edge
-    for i = 1:4
-        pnt1 = xc;
-        pnt2 = edge_pnt(i,:);       
-        plot3([pnt1(1) pnt2(1)],[pnt1(2) pnt2(2)],[pnt1(3) pnt2(3)],'k');
-    end
-    
+%     % plot the edge
+%     for i = 1:4
+%         pnt1 = xc;
+%         pnt2 = edge_pnt(i,:);       
+%         plot3([pnt1(1) pnt2(1)],[pnt1(2) pnt2(2)],[pnt1(3) pnt2(3)],'k');
+%     end
+%     
 
 end
