@@ -36,9 +36,15 @@ heights = [6,2];
 map3 = robotics.OccupancyMap3D(map.Resolution);
 res = map.Resolution;
 
+boxes = {};
+
 pcl = []; % should be N x 3
 for idx = 1:max(IDX)
     xy_pnts=map.grid2world(occ_cells(find(IDX==idx),:));
+    
+    boxes{idx}.lower = [min(xy_pnts) 0];
+    boxes{idx}.upper = [max(xy_pnts) heights(idx)];
+    
     for r = 1:size(xy_pnts,1)
             zs = 0:1/res:heights(idx);
             for z = zs                
@@ -701,6 +707,92 @@ end
 
 
 %% Phase 10: camera included 
+% final result 
+figure
+subplot(4,2,1:4)
+% show(map3)
+
+hold on 
+plot3(target1_xs,target1_ys,target1_zs,'r^-','LineWidth',2)
+plot3(target2_xs,target2_ys,target2_zs,'r^-','LineWidth',2)
+plot3(tracker(1),tracker(2),2,'mo','MarkerFaceColor','m')
+axis([xl  xu yl yu zl zu])
+draw_box([xl yl zl],[xu yu zu],'k',0.1)
+
+% this is wrapping of the octomap voxels 
+margin = 0.5*ones (1,3);
+
+for idx = 1:max(IDX)
+    draw_box(boxes{idx}.lower - margin,boxes{idx}.upper + margin,'k',0.6)
+end
+
+[knot_x,knot_y, knot_z]=plot_poly_spline(ts,reshape(pxs,[],1),reshape(pys,[],1),reshape(pzs,[],1));  
+
+% draw camera  
+for i = 1: length(knot_x)-1
+    camera_origin = [knot_x(i+1) knot_y(i+1) knot_z(i+1)];
+   
+    % body axis of camera
+    seeing_pnt  = [(target1_xs(i) + target2_xs(i))/2 ...
+        (target1_ys(i) + target2_ys(i))/2 ...
+        (target1_zs(i) + target2_zs(i))/2 ];
+    
+    xb = seeing_pnt - camera_origin;
+    xb = xb'/norm(xb); % 3 x 1 
+    
+    % take any non-zero element from xb -> can determine yb
+    nz_elem_idx = datasample ( find(xb~=0),1);
+    other_elem_idx = setdiff([1 2 3],nz_elem_idx);
+    yb = [1 1 1]';
+    yb(nz_elem_idx)  = -(xb(other_elem_idx(1)) + xb(other_elem_idx(2)))/xb(nz_elem_idx);
+    yb = yb/norm(yb);
+    
+    zb = cross(xb,yb);
+    
+    camera_R = [xb yb zb];
+    
+    plot_camera(camera_origin,camera_R,FOV,0.2,1)
+          
+end
+axis equal
+
+%% box projection test 
+figure
+
+i = 1;
+% obtain each pnts of box (totaling 8)
+
+[x_grid,y_grid,z_grid] = meshgrid([boxes{i}.lower(1) boxes{i}.upper(1)],...
+    [boxes{i}.lower(2) boxes{i}.upper(2)]...
+    ,[boxes{i}.lower(3) boxes{i}.upper(3)]);
+
+box_pnts = [reshape(x_grid,1,8) ; reshape(y_grid,1,8) ; reshape(z_grid,1,8)];
+
+% camera intrinsic parameters
+f =0.03; 
+p = [0 0 0]; 
+R = eul2rotm([pi/6 0 0]);
+
+% projection 
+proj_pnts=proj_image(f,p,R,box_pnts);
+K=convhull(proj_pnts(1,:),proj_pnts(2,:));
+contour_box=proj_pnts(K,:);
+
+
+
+
+
+
+
+
+
+
+xlabel('x');
+ylabel('y');
+zlabel('z')
+axis equal
+
+
 
 
 
