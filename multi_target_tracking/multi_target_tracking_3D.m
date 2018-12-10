@@ -12,6 +12,7 @@ lx = 10; ly = 10; % size of map in real coordinate
 res = lx / map_dim;
 % custom_map=makemap(20); % draw obstacle interactively
 load('problem_settings.mat')
+tracker = [1.4 1.4 2.0]';
 % Generate map occupancy grid object and path of the two targets
 
 % map = robotics.OccupancyGrid(flipud(custom_map),1/res);
@@ -652,7 +653,7 @@ corridor_polygon_seq = {};
 for h = 1:H    
     subplot(2,2,h)
     plotregion(-A_div{h}{idx_seq(h)} ,-b_div{h}{idx_seq(h)} ,[xl yl zl]',[xu yu zu]',[1,0,1],1);
-    
+    hold on
     % 2D version 
 %     waypoint_polygon_seq{h}.A = A_div{h}{idx_seq(h)};
 %     waypoint_polygon_seq{h}.b = b_div{h}{idx_seq(h)};
@@ -743,7 +744,7 @@ for i = 1: length(knot_x)-1
     pan = atan2(xb(2),xb(1));
     tilt = atan2(xb(3),sqrt(xb(1)^2 + xb(2)^2));
     
-    h=0.2;
+    h=0.5;
     
     camera_R = eul2rotm([pan -tilt 0]);    
     plot_camera(camera_origin,camera_R,FOV,h,1)
@@ -766,9 +767,6 @@ for i = 1: length(knot_x)-1
     proj_img_plane = camera_origin' + t2 * v2;
     plot3(proj_img_plane(1),proj_img_plane(2),proj_img_plane(3),'r*')
 
-
-
-    
 end
 axis equal
 
