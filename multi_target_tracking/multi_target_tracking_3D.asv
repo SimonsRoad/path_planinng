@@ -749,7 +749,7 @@ for i = 1: length(knot_x)-1
     plot_camera(camera_origin,camera_R,FOV,h,1)
     
     
-    % draw the projection of target1 
+    % draw the projectio
     plot3([camera_origin(1) target1_xs(i)],[camera_origin(2) target1_ys(i)],[camera_origin(3) target1_zs(i)],'r-')
 
     v1 = [(-camera_origin(1)  + target1_xs(i)) (-camera_origin(2)  + target1_ys(i)) (-camera_origin(3)  + target1_zs(i)) ]'; % bearing vector to target1
@@ -757,15 +757,17 @@ for i = 1: length(knot_x)-1
     proj_img_plane = camera_origin' + t1 * v1;
     plot3(proj_img_plane(1),proj_img_plane(2),proj_img_plane(3),'r*')
 
-    
-    % draw the projection of target2 
     plot3([camera_origin(1) target2_xs(i)],[camera_origin(2) target2_ys(i)],[camera_origin(3) target2_zs(i)],'r-')
 
-    v2 = [(-camera_origin(1)  + target2_xs(i)) (-camera_origin(2)  + target2_ys(i)) (-camera_origin(3)  + target2_zs(i)) ]'; % bearing vector to target2
-    t2 = (norm(xb)^2 * h )/(xb' * v2);
-    proj_img_plane = camera_origin' + t2 * v2;
+
+    plot3([camera_origin(1) target1_xs(i)],[camera_origin(2) target1_ys(i)],[camera_origin(3) target1_zs(i)],'r-')
+
+    v1 = [(-camera_origin(1)  + target1_xs(i)) (-camera_origin(2)  + target1_ys(i)) (-camera_origin(3)  + target1_zs(i)) ]'; % bearing vector to target2
+    t1 = (norm(xb)^2 * h )/(xb' * v1);
+    proj_img_plane = camera_origin' + t1 * v1;
     plot3(proj_img_plane(1),proj_img_plane(2),proj_img_plane(3),'r*')
 
+    plot3([camera_origin(1) target2_xs(i)],[camera_origin(2) target2_ys(i)],[camera_origin(3) target2_zs(i)],'r-')
 
 
     
