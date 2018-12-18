@@ -235,65 +235,39 @@ for n = 1:N_target
 end % target 
 
 
-%% Phase 3: plot the visibility affine region of each target respectively 
+
+
+
+
+
+%% Phase 3: plot the visibility region of each target 
 
 % sphere version 
+figure
 color_set = [1 0 0;0 0 1]; % for 1st target - red / 2nd target - blue 
 
+show(map3)
 H = length(target1_xs);
 target1_zs = ones(1,H);
 target2_zs = ones(1,H);
 
-
+hold on 
+plot3(target1_xs,target1_ys,target1_zs,'r^-','LineWidth',2)
+plot3(target2_xs,target2_ys,target2_zs,'r^-','LineWidth',2)
 % plot3(tracker(1),tracker(2),tracker(3),'mo','MarkerFaceColor','m')
 % draw_box([xl yl zl],[xu yu zu],'k',0.1)
-% height of initial pose of tracker 
-margin = 3; 
-tracker = [tracker(1) ; tracker(2) ; 2]; 
 
-% domain 
-domain_x =[min([tracker(1) reshape(targets_xs,1,[])]) max([tracker(1) reshape(targets_xs,1,[])])];
-domain_y =[min([tracker(2) reshape(targets_ys,1,[])]) max([tracker(2) reshape(targets_ys,1,[])])];
-domain_z =[min([tracker(3) reshape(targets_zs,1,[])]) max([tracker(3) reshape(targets_zs,1,[])])];
-
-xl = domain_x(1) - margin;
-xu = domain_x(2) + margin;
-
-yl = domain_y(1) - margin;
-yu = domain_y(2) +margin;
-
-zl = domain_z(1) - margin;
-zu = domain_z(2) + margin;
-
+hold on 
 for n = 1: N_target         
-        figure(n)
-        % only for H = 4
-        
         for h = 1:length(target1_xs)                                            
-            subplot(2,2,h)
-            show(map3)
-            hold on 
-            if n == 1
-                plot3(target1_xs,target1_ys,target1_zs,'r^-','LineWidth',2)
-            else
-                plot3(target2_xs,target2_ys,target2_zs,'r^-','LineWidth',2)
-            end
             max_alpha = max(1./visi_info_set{n}.cost_set{h});
-            min_alpha = min(1./visi_info_set{n}.cost_set{h});
-
-            % for segment 
-            for k = 1:length(visi_info_set{n}.A_set{h})
-                alpha = 1/visi_info_set{n}.cost_set{h}(k);
-                [r,g,b]=getRGB(alpha,min_alpha,max_alpha,1);
-                plotregion(-visi_info_set{n}.A_set{h}{i},-visi_info_set{n}.b_set{h}{i},[xl yl zl],[xu yu zu],[r g b],0.3);              
+            for k = 1:length(visi_info_set{n}.A)
+                alpha =             
             end
         end
                 
 end
 
-
-
-%%
 figure
 title("distance field sequence")
 for n = 1:N_target
