@@ -1,0 +1,32 @@
+Compiling OpenCV for Windows 64-bit
+--------------------------------------
+
+1. Check out source code from the SVN at https://code.ros.org/svn/opencv/trunk/opencv
+   e.g. to C:\opencv
+
+2. Download cmake and put on path
+
+3. Open command line
+
+4. cd C:\opencv
+
+5. mkdir release64
+
+6. cd release64
+
+7. cmake -G "Visual Studio 9 2008 Win64" -D:CMAKE_BUILD_TYPE=RELEASE C:\opencv
+
+8. Open solution in the release64 directory and build OpenCV
+
+9. Build the "INSTALL" project
+
+MATLAB
+-------
+
+1. cd(prefdir)
+
+2. edit mexopts.bat
+
+3. Add "C:\opencv\release64\include" to include path
+
+4. Add "C:\opencv\release64\lib" to library path

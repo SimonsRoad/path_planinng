@@ -1,0 +1,17 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=mex 2015.10.14)  24 OCT 2015 14:30
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**ilabel.c
+(./ilabel.c
+This is MeX  Version 1.05  18 XII 1993  (B. Jackowski & M. Ry\'cko)
+! You can't use `macro parameter character #' in horizontal mode.
+l.36 #
+      include "mex.h"
+? 
+! Emergency stop.
+l.36 #
+      include "mex.h"
+End of file on the terminal!
+
+No pages of output.

@@ -1,0 +1,12 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=mex 2017.1.5)  3 DEC 2017 11:17
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**CFLAGS=-std=c99 -g closest.c
+
+! Emergency stop.
+<*> CFLAGS=-std=c99 
+                    -g closest.c
+End of file on the terminal!
+
+No pages of output.
