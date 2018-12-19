@@ -81,7 +81,8 @@ N_azim = [40,40];
 N_elev = [10, 10];
 
 % parameter for sub-division             
-N_rect = 10; r_max_stride = 6; c_max_stride = 6; stride_res = 1;                
+N_rect = 10; r_max_stride = 6; % caution: should not be bigger than N_azim/4
+c_max_stride = 10; stride_res = 1;                
 
 % visi info 
 visi_info_set = {}; % idx = 1 : target1 / idx =2 : target2
@@ -145,17 +146,33 @@ for n = 1:N_target
         elev_set = linspace(elev_min,elev_max,N_elev(n));
         
         max_ray = 6; % maximum allowable tracking distance 
+        min_ray =2; % minmum tracking distacne 
+        
         ray_cast_res = 1/res;  % ray cast stride distance 
-        clustering_delta_r = 1/res/2; % threshold for neigborhood-ness for hit distance 
+        clustering_delta_r = 1/res; % threshold for neigborhood-ness for hit distance 
         
         [DT_set, pinch_bin]=get_multi_depth_DT(map3_h,[target_xs(t) target_ys(t) target_zs(t)],azim_set,elev_set,max_ray,ray_cast_res,clustering_delta_r);
+        % DT set update 
+                
+        % let's save the pinching process                         
+        DT_set_t{t} = DT_set; 
+        pinch_bin_t{t} = pinch_bin;
+        
+        figure() % new figure for this time step and this target 
+        title_tot = sprintf('%d th target in %d time step',n,t);
+        sgtitle(title_tot)
+        
         pinch_bin = [0 pinch_bin];
         
         % pinch_bin : increasing order 
-        for s = 1:length(DT_set)
-            fprintf("%d th pinch ray length for %d th target in %f time step : %f \n",s,n,t,pinch_bin(s+1));
-            DT = DT_set{s};
+        for s = 1:length(DT_set) % length DT_set = length pinch bin
             
+            % SDFT drawing 
+            subplot(length(pinch_bin)-1,1,s)                
+            title_sub = sprintf('%d th pinch ray length for %.2f',s,pinch_bin(s+1)); 
+            title(title_sub)
+            
+            DT = DT_set{s};
             rect_idx = 0;
             % extract rect region 
             if sum(DT) == inf % no hit occured
@@ -173,9 +190,15 @@ for n = 1:N_target
                     end
                 end
                 
+                plot_DT_rectDiv(10*ones(size(DT,1),size(DT,2)),rects); % in case of no hit.. just plane white for DT 
+                
+                
             else % if there's hit 
                 N_rect = 6; % number of recommendation rect 
-                rects = rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res);                                
+                rects = rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res);                    
+                
+                plot_DT_rectDiv(DT,rects); 
+                
             end  
 
             % enclosing region of this polyhedra segment (6 surfaces or 5 surfaces in the first pinch)
@@ -193,12 +216,21 @@ for n = 1:N_target
                                                
                 % two fore and back surface 
                 v = [getVec(azim1,elev1) ; getVec(azim1,elev2) ; getVec(azim2,elev2) ; getVec(azim2,elev1)];
-                v_center = mean(v);
-                v_center = v_center / norm(v_center);
+
 
                 inner_surf_four_corners = [target_xs(t) target_ys(t) target_zs(t)] + pinch_prev *  v; % 4 x 3
                 outer_surf_four_corners = [target_xs(t) target_ys(t) target_zs(t)] + pinch_cur *  v; % 4 x 3
+                v_center = cross((mean(outer_surf_four_corners) - outer_surf_four_corners(1,:)),(mean(outer_surf_four_corners) - outer_surf_four_corners(4,:)));
+                v_center = v_center / norm(v_center);
+
                 
+                % inspection 
+%                 figure 
+%                 hold on 
+%                 scatter3(inner_surf_four_corners(:,1),inner_surf_four_corners(:,2),inner_surf_four_corners(:,3),'bo')
+%                 scatter3(outer_surf_four_corners(:,1),outer_surf_four_corners(:,2),outer_surf_four_corners(:,3),'ro')
+%                 axis equal
+%                 
                 
                 % enclosing lateral surface of this polyhedra segment                 
                 A  = [cross(v(1,:),v(2,:)) ; cross(v(2,:),v(3,:)) ; cross(v(3,:),v(4,:)) ; cross(v(4,:),v(1,:)) ; - v_center ; v_center];
@@ -209,12 +241,12 @@ for n = 1:N_target
                     A(5,:)*  inner_surf_four_corners(1,:)';...
                     A(6,:)*  outer_surf_four_corners(1,:)'];
                                                                                                 
-                % update  block                                                
-                Nt = Nt + 1;
-                A_set_t{t}{Nt} = A;
-                b_set_t{t}{Nt} = b;                                                                  
-                cost_set_t{t}(Nt) = 1/rects{rect_idx}.score; % should check the value of score 
-                rect_set_t{t}{Nt} = rects{rect_idx}; % rectangle 
+                % update  block                                    
+                % remind : s is pinch idx / rect_idx 
+                A_set_t{t}{s}{rect_idx} = A;
+                b_set_t{t}{s}{rect_idx} = b;                                                                  
+                cost_set_t{t}{s}(rect_idx) = 1/rects{rect_idx}.score; % should check the value of score (inf value means no hit occured)
+                rect_set_t{t}{s}{rect_idx} = rects{rect_idx}; % rectangle 
                                 
             end % rect
 
@@ -227,7 +259,8 @@ for n = 1:N_target
      visi_info.b_set = b_set_t;
      visi_info.cost_set = cost_set_t;
      visi_info.rect_set = rect_set_t;
-     visi_info.DT_t = DT_t;
+     visi_info.DT_t = DT_set_t;
+     visi_info.pinch_bin = pinch_bin_t;
      
      % append it 
      visi_info_set{n} = visi_info;
@@ -237,7 +270,6 @@ end % target
 
 %% Phase 3: plot the visibility affine region of each target respectively 
 
-% sphere version 
 color_set = [1 0 0;0 0 1]; % for 1st target - red / 2nd target - blue 
 
 H = length(target1_xs);
@@ -266,107 +298,68 @@ zl = domain_z(1) - margin;
 zu = domain_z(2) + margin;
 
 for n = 1: N_target         
-        figure(n)
+      figure
+      title_tot = sprintf('%d th target',n);
+      sgtitle(title_tot)
         % only for H = 4
-        
+
         for h = 1:length(target1_xs)                                            
             subplot(2,2,h)
             show(map3)
             hold on 
+            % draw the target 
             if n == 1
                 plot3(target1_xs,target1_ys,target1_zs,'r^-','LineWidth',2)
             else
                 plot3(target2_xs,target2_ys,target2_zs,'r^-','LineWidth',2)
             end
-            max_alpha = max(1./visi_info_set{n}.cost_set{h});
-            min_alpha = min(1./visi_info_set{n}.cost_set{h});
+            
 
-            % for segment 
-            for k = 1:length(visi_info_set{n}.A_set{h})
-                alpha = 1/visi_info_set{n}.cost_set{h}(k);
-                [r,g,b]=getRGB(alpha,min_alpha,max_alpha,1);
-                plotregion(-visi_info_set{n}.A_set{h}{i},-visi_info_set{n}.b_set{h}{i},[xl yl zl],[xu yu zu],[r g b],0.3);              
+            
+            % for pinch 
+            for p = 1:length(visi_info_set{n}.A_set{h})
+
+                           % let's secure the max value excluding the inf value
+            min_val = 1000;
+            max_val = 0;            
+ 
+                % for rect segment in the pinch 
+                for s = 1:length(visi_info_set{n}.A_set{h}{p}) 
+                    cur_score_vec = 1./visi_info_set{n}.cost_set{h}{p};
+                    % we clamping the inf maximum value with non-inf maximum
+                    cur_pinch_min=min(cur_score_vec(cur_score_vec ~= inf));    
+                    cur_pinch_max = max(cur_score_vec(cur_score_vec ~= inf));                    
+                    if min_val > cur_pinch_min
+                        min_val=cur_pinch_min;
+                    end
+                    if max_val < cur_pinch_max
+                        max_val = cur_pinch_max;
+                    end                    
+                end
+                
+                
+                
+                % for rect segment in the pinch 
+                for s = 1:length(visi_info_set{n}.A_set{h}{p}) 
+                    alpha = 1/visi_info_set{n}.cost_set{h}{p}(s);
+                    if alpha == inf
+                        alpha = max_val;
+                    end                    
+                    [r,g,b]=getRGB(alpha,min_val,max_val,1);
+                    plotregion(-visi_info_set{n}.A_set{h}{p}{s},-visi_info_set{n}.b_set{h}{p}{s},[xl yl zl],[xu yu zu],[r g b],0.3);              
+                end
             end
+            
+            axis([xl xu yl yu zl zu])
+            axis equal
+            
         end
                 
 end
 
 
 
-%%
-figure
-title("distance field sequence")
-for n = 1:N_target
-    for h = 1:H
-        
-        subplottight(N_target , H , h + H*(n-1));
-        % draw the distance field at time t 
-        DT = visi_info_set{n}.DT_t{h};
-        DT(DT<0) =0;
-        c_set = size(DT,2);
-        r_set = size(DT,1);
-        max_DT = max(max(DT));
 
-        [ys,xs] = meshgrid(1:c_set,1:r_set);
-        
-        hold on 
-        xlabel('row')
-        ylabel('col')
-
-        for r = 1:r_set
-            for c = 1: c_set
-
-                x1 = xs(r,c)-0.5;
-                y1 = ys(r,c)-0.5;
-                x2 = xs(r,c) + 0.5;
-                y2 = ys(r,c) + 0.5;
-
-                intensity = DT(r,c) / max_DT;        
-                patch([x1 x1 x2 x2],[y1 y2 y2 y1],intensity*ones(1,3))
-            end
-        end
-        
-        null_matrix = DT <= 1;
-
-        % boundary detection
-        [boundary_idx]=bwboundaries(null_matrix);
-        boundary_rc = [];    
-        for idx=1:length(boundary_idx)
-            boundary_rc = [boundary_rc; boundary_idx{idx}];
-        end
-
-
-        for i = 1:length(boundary_rc)
-            plot(boundary_rc(i,1),boundary_rc(i,2),'rs','MarkerSize',4);    
-        end
-        
-        
-        rects=rectDiv(DT,N_rect,r_max_stride,c_max_stride,stride_res);
-
-        
-        % draw rect 
-        
-        hold on 
-        
-        for i = 1:length(rects)
-
-
-                x1 = rects{i}.lower(1);
-                y1 = rects{i}.lower(2);
-                x2 = rects{i}.upper(1);
-                y2 = rects{i}.upper(2);
-
-                patch([x1 x1 x2 x2],[y1 y2 y2 y1],ones(1,3),'FaceAlpha',0.1,'EdgeColor','g','LineWidth',3)
-
-        end
-
-                axis ([0 r_set 0 c_set])
-                axis equal
-
-    end
-end
-
-hold off 
 
 %% Phase 4 : plot feasible search region (should include all the points on the target paths )
 

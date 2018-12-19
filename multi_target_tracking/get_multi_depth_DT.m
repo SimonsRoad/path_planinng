@@ -20,7 +20,7 @@ function [DT_set,pinch_bin] = get_multi_depth_DT(map3,ray_origin,azim_set,elev_s
    hit_dist_flat=reshape(hit_dist,1,[]); % histogram
    % tuning!! 
    N_min_cluster = 20;
-   IDX=DBSCAN(hit_dist_flat',clustering_delta_r,N_min_cluster);
+   IDX=DBSCAN(hit_dist_flat',clustering_delta_r,N_min_cluster); % cluster delta r 
    if max(IDX) == 1
     warning('clusterring warning : clustered altogether');
    end
@@ -28,7 +28,7 @@ function [DT_set,pinch_bin] = get_multi_depth_DT(map3,ray_origin,azim_set,elev_s
    
    % what are the representative dividing value of hit distance 
    for idx = 1:max(IDX)
-        pinch_bin=[pinch_bin min(hit_dist_flat(find(IDX==idx)))-0.02];       
+        pinch_bin=[pinch_bin max(hit_dist_flat(find(IDX==idx)))-0.02];       
    end
    
    %% Phase 3: set DT    
@@ -39,6 +39,9 @@ function [DT_set,pinch_bin] = get_multi_depth_DT(map3,ray_origin,azim_set,elev_s
        cast_res = double(hit_dist < pinch); 
        DT = signed_distance_transform([cast_res ; cast_res ; cast_res]); % periodic distance transform         
        DT = DT(N_azim+1:2*N_azim,:);  
+       if sum(DT) == inf
+            disp('hey')
+       end
        DT_set{i} = DT;
    end
 
