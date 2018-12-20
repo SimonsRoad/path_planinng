@@ -28,7 +28,7 @@ function [DT_set,pinch_bin] = get_multi_depth_DT(map3,ray_origin,azim_set,elev_s
    
    % what are the representative dividing value of hit distance 
    for idx = 1:max(IDX)
-        pinch_bin=[pinch_bin max(hit_dist_flat(find(IDX==idx)))-0.02];       
+        pinch_bin=[pinch_bin mean(hit_dist_flat(find(IDX==idx)))];       
    end
    
    %% Phase 3: set DT    

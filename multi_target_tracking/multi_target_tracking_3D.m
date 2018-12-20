@@ -7,21 +7,28 @@ addpath('..\intercept\') % for Rplot and proj_image
 
 %% Phase1 : Map setting in 2D projection space
 
-map_dim = 20;
+map_dim = 30;
 lx = 10; ly = 10; % size of map in real coordinate 
 res = lx / map_dim;
-% custom_map=makemap(20); % draw obstacle interactively
-load('problem_settings.mat')
+
+
+% this is problem settings block 
+%%%%%%%%%%%%
+figure
+custom_map=makemap(map_dim); % draw obstacle interactively
+% load('problem_settings.mat')
 tracker = [1.4 1.4 2.0]';
+
 % Generate map occupancy grid object and path of the two targets
-
-% map = robotics.OccupancyGrid(flipud(custom_map),1/res);
+map = robotics.OccupancyGrid(flipud(custom_map),1/res);
 show(map);
-% [target1_xs,target1_ys,target2_xs,target2_ys,tracker]=set_target_tracker2; % assign path of two targets and tracker
+[target1_xs,target1_ys,target2_xs,target2_ys,tracker]=set_target_tracker2; % assign path of two targets and tracker
+%%%%%%%%%%%%
 
+%% 
 % packing the target paths (should be same length)
-% targets_xs = [target1_xs ; target2_xs];
-% targets_ys = [target1_ys ; target2_ys];
+targets_xs = [target1_xs ; target2_xs];
+targets_ys = [target1_ys ; target2_ys];
 
 % Clustering and give height for each obstacle 
 epsilon=1; % neihbor hood bound 
@@ -31,7 +38,7 @@ occ_cells= [occ_rows occ_cols];
 IDX=DBSCAN(occ_cells,epsilon,MinPts);
 figure
 PlotClusterinResult(occ_cells,IDX)
-heights = [6,2];
+heights = [2,8];
 
 % construct 3D map from 2D ground plan 
 map3 = robotics.OccupancyMap3D(map.Resolution);
@@ -47,7 +54,7 @@ for idx = 1:max(IDX)
     boxes{idx}.upper = [max(xy_pnts) heights(idx)];
     
     for r = 1:size(xy_pnts,1)
-            zs = 0:1/res:heights(idx);
+            zs = 0:1/res/2:heights(idx);
             for z = zs                
                 % point cloud append 
                 pcl = [pcl ; [xy_pnts(r,:) z]] ;               
@@ -72,7 +79,7 @@ plot(target1_xs,target1_ys,'r^-','LineWidth',2)
 plot(target2_xs,target2_ys,'r^-','LineWidth',2)
 
 vis_cost_sets = {};
-
+hold off 
 %% Phase2: Get score maps and inequality condition set of each target during a prediction horizon
 
 % parameter for observation 
@@ -81,8 +88,8 @@ N_azim = [40,40];
 N_elev = [10, 10];
 
 % parameter for sub-division             
-N_rect = 10; r_max_stride = 6; % caution: should not be bigger than N_azim/4
-c_max_stride = 10; stride_res = 1;                
+N_rect = 10; r_max_stride = 5; % caution: should not be bigger than N_azim/4
+c_max_stride = 6; stride_res = 1;                
 
 % visi info 
 visi_info_set = {}; % idx = 1 : target1 / idx =2 : target2
@@ -96,6 +103,11 @@ for n = 1:N_target
     cost_set_t = {}; % 1th idx  : time / 2nd idx : just index in the time 
     A_set_t = {}; % set of affine region at the time t
     b_set_t = {};
+    
+    cost_set_t_flat = {}; % s indexing is removed (s index in fact for the convenience to coloring )
+    A_set_t_flat = {};
+    b_set_t_flat = {};
+    
     rect_set_t ={}; % four corner of of each rect 
     DT_t = {}; % distance field of each agent at time t 
     
@@ -164,6 +176,9 @@ for n = 1:N_target
         
         pinch_bin = [0 pinch_bin];
         
+        Nk = 0; % polyhedron indexing 
+
+        
         % pinch_bin : increasing order 
         for s = 1:length(DT_set) % length DT_set = length pinch bin
             
@@ -207,8 +222,12 @@ for n = 1:N_target
             pinch_prev = pinch_bin(s);
             pinch_cur = pinch_bin(s+1);
             
+            
            for rect_idx = 1:length(rects)
-                                
+                
+               
+                Nk = Nk + 1;
+                
                 azim1 = azim_set(rects{rect_idx}.lower(1));
                 elev1 = elev_set(rects{rect_idx}.lower(2));
                 azim2 = azim_set(rects{rect_idx}.upper(1));
@@ -247,7 +266,14 @@ for n = 1:N_target
                 b_set_t{t}{s}{rect_idx} = b;                                                                  
                 cost_set_t{t}{s}(rect_idx) = 1/rects{rect_idx}.score; % should check the value of score (inf value means no hit occured)
                 rect_set_t{t}{s}{rect_idx} = rects{rect_idx}; % rectangle 
-                                
+
+                % updating - too many dimensional indexing is not tractable                                
+                            
+                A_set_t_flat{t}{Nk} = A;
+                b_set_t_flat{t}{Nk} = b;                                                                  
+                cost_set_t_flat{t}{Nk} = 1/rects{rect_idx}.score; % should check the value of score (inf value means no hit occured)
+                
+                                             
             end % rect
 
         end % rectangle extraction in (azim,elev) space (pinch)
@@ -258,6 +284,10 @@ for n = 1:N_target
      visi_info.A_set = A_set_t;
      visi_info.b_set = b_set_t;
      visi_info.cost_set = cost_set_t;
+     
+     visi_info.A_set_flat = A_set_t_flat;
+     visi_info.b_set_flat = b_set_t_flat;
+     visi_info.cost_set_flat = cost_set_t_flat;
      visi_info.rect_set = rect_set_t;
      visi_info.DT_t = DT_set_t;
      visi_info.pinch_bin = pinch_bin_t;
@@ -360,71 +390,11 @@ end
 
 
 
-
-%% Phase 4 : plot feasible search region (should include all the points on the target paths )
-
-% for now, the feasible region (search space) for solving discrete path is just rectangle
-
-H = length(target_xs);
-
-% height of initial pose of tracker 
-margin = 3; 
-
-tracker = [tracker(1) ; tracker(2) ; 2]; 
-
-% domain 
-domain_x =[min([tracker(1) reshape(targets_xs,1,[])]) max([tracker(1) reshape(targets_xs,1,[])])];
-domain_y =[min([tracker(2) reshape(targets_ys,1,[])]) max([tracker(2) reshape(targets_ys,1,[])])];
-domain_z =[min([tracker(3) reshape(targets_zs,1,[])]) max([tracker(3) reshape(targets_zs,1,[])])];
-
-xl = domain_x(1) - margin;
-xu = domain_x(2) + margin;
-
-yl = domain_y(1) - margin;
-yu = domain_y(2) +margin;
-
-zl = domain_z(1) - margin;
-zu = domain_z(2) + margin;
-
-
-
-% plot the serach region 
-figure
-show(map3)
-target1_zs = ones(1,H);
-target2_zs = ones(1,H);
-
-hold on 
-plot3(target1_xs,target1_ys,target1_zs,'r^-','LineWidth',2)
-plot3(target2_xs,target2_ys,target2_zs,'r^-','LineWidth',2)
-plot3(tracker(1),tracker(2),tracker(3),'mo','MarkerFaceColor','m')
-draw_box([xl yl zl],[xu yu zu],'k',0.1)
-
-
-
-% affine version 
-color_set = [1 0 0;0 0 1]; % for 1st target - red / 2nd target - blue 
-
-for n = 1: N_target         
-        for h = 1:length(target1_xs)                                            
-            max_alpha = max(1./visi_info_set{n}.cost_set{h});
-            for i = 1: length(visi_info_set{n}.rect_set{h})
-                 alpha_val =1/visi_info_set{n}.cost_set{h}(i);          
-                
-                plotregion(-visi_info_set{n}.A_set{h}{i},-visi_info_set{n}.b_set{h}{i},[xl yl zl],[xu yu zu],color_set(n,:),(alpha_val/max_alpha)^2*0.3);              
-                                
-            end
-        end
-                
-end
-
-
-
-
 %% Phase 5 : Combination for divided regions 
 
 % intersection region of the two polyhydra corresponding to each target
 FOV = 120 * pi/180;
+pruning_vol = 0.2;
 A_div = {};
 b_div = {};
 c_div = {}; % center of each convex polyhedra
@@ -441,24 +411,24 @@ for h = 1:H
     Nk = 0;
     
     % we reject the blind region 
-    rel_dist = norm([target1_xs(h) target1_ys(h)] - [target2_xs(h) target2_ys(h)]); % distance between the target 
+    rel_dist = norm([target1_xs(h) target1_ys(h)] - [target2_xs(h) target2_ys(h)]); % distance between the targets 
     blind_height = rel_dist/2/tan(FOV/2);
     
     
     
-    for i = 1:length(visi_info_set{1}.cost_set{h})
-        for j = 1:length(visi_info_set{2}.cost_set{h})
+    for i = 1:length(visi_info_set{1}.cost_set_flat{h})
+        for j = 1:length(visi_info_set{2}.cost_set_flat{h})
             
             % feasibility test for the intersection region of the two
             % polyhedron
                         
-            Ai = visi_info_set{1}.A_set{h}{i};
-            bi = visi_info_set{1}.b_set{h}{i};
-            vis_cost1 = visi_info_set{1}.cost_set{h}(i);
+            Ai = visi_info_set{1}.A_set_flat{h}{i};
+            bi = visi_info_set{1}.b_set_flat{h}{i};
+            vis_cost1 = visi_info_set{1}.cost_set_flat{h}{i};
             
-            Aj = visi_info_set{2}.A_set{h}{j};
-            bj = visi_info_set{2}.b_set{h}{j};
-            vis_cost2 = visi_info_set{2}.cost_set{h}(j);
+            Aj = visi_info_set{2}.A_set_flat{h}{j};
+            bj = visi_info_set{2}.b_set_flat{h}{j};
+            vis_cost2 = visi_info_set{2}.cost_set_flat{h}{j};
                               
             A_intsec = [Ai ; Aj];
             b_intsec = [bi ; bj];
@@ -488,6 +458,7 @@ for h = 1:H
                try  
                     vertices = con2vert([A_bound;A_intsec ],[;b_bound ;b_intsec]); % the vertices of this region   
                catch
+                    warning('no vertex could be found')
                     vertices = [];
                end
                
@@ -500,7 +471,7 @@ for h = 1:H
                % we reject the segment the volume is too small                    
                shp = alphaShape(vertices(:,1),vertices(:,2),vertices(:,3),20);
                vol = shp.volume;
-               if vol >= 5
+               if vol >= pruning_vol
                   Nk = Nk + 1;                     
                    A_div{h}{Nk} = [A_intsec; A_bound];
                    b_div{h}{Nk} = [b_intsec; b_bound]; 
@@ -518,7 +489,7 @@ for h = 1:H
 end
 %% Phase 6: plot faesible segment
 
-figure(1)
+figure
 for h =1 :H 
     subplot(2,H/2,h)                
         
@@ -620,7 +591,6 @@ Astar_G=Astar_G.addedge(node1_list,node2_list, (weight_list));
 [path_idx,total_cost]=Astar_G.shortestpath('t0n1','xf','Method','auto');
 %% Phase 8 : plotting the planned path
 
-figure(1)
 hold on 
 idx_seq = [];
 for pnt_idx = path_idx
@@ -636,7 +606,7 @@ corridor_polygon_seq = {};
 
 for h = 1:H    
     subplot(2,2,h)
-    plotregion(-A_div{h}{idx_seq(h)} ,-b_div{h}{idx_seq(h)} ,[xl yl zl]',[xu yu zu]',[1,0,1],1);
+    plotregion(-A_div{h}{idx_seq(h)} ,-b_div{h}{idx_seq(h)} ,[xl yl zl]',[xu yu zu]',[1,0,1],0,,'g-');
     hold on
     % 2D version 
 %     waypoint_polygon_seq{h}.A = A_div{h}{idx_seq(h)};
@@ -655,7 +625,7 @@ for h = 1:H
     vert = [vert1 ; vert2];       
     K = convhull(vert(:,1), vert(:,2),vert(:,3));    
     shp = alphaShape(vert(:,1),vert(:,2),vert(:,3),1);
-    plot(shp,'EdgeColor','g','FaceColor',[0 0 0],'FaceAlpha',0)
+%     plot(shp,'EdgeColor','g','FaceColor',[0 0 0],'FaceAlpha',0)
     
     [A_corr,b_corr]=vert2con(vert(K,:));
     % corridor connecting each waypoint polygon 
